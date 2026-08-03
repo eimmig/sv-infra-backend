@@ -1,0 +1,5 @@
+# Segredos reais nunca sao versionados — ver docs/OBSERVABILITY-AND-CONFIG.md.
+# O arquivo versionado e o .env.example, com placeholders.
+.env
+.env.*
+!.env.example

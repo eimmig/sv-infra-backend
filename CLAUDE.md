@@ -29,12 +29,22 @@ lugar real para código/config versionados, seguindo o mesmo padrão dos outros 
 - **Escopo restrito (stay in scope)**: não edite código de nenhum serviço de aplicação a partir
   desta pasta — este harness só cobre orquestração local (Docker Compose) e o teste de
   resiliência cross-service, nunca lógica de negócio.
-- **`feat-001` (Docker Compose)**: PostgreSQL (uma instância lógica por serviço Java —
-  `auth`/`bets`/`stats` — Database per Service, ver `../CLAUDE.md`), RabbitMQ com **DLQ
-  configurada desde o início** (não como melhoria futura — ver `../docs/services/infra.md`),
-  Redis (uso exclusivo de `stats-service`), n8n (webhook do Telegram). Healthchecks em cada
-  serviço de infra, usados por `depends_on: condition: service_healthy` para que dependentes só
-  subam depois que a dependência estiver de fato pronta — ver `../docs/OBSERVABILITY-AND-CONFIG.md`.
+- **`feat-001` (Docker Compose)**: **entregue em 2026-08-03**. Três containers PostgreSQL
+  (`postgres-auth` 5432, `postgres-bets` 5433, `postgres-stats` 5434 — Database per Service,
+  ver `../docs/DECISIONS-LOG.md` 2026-08-03), RabbitMQ 4 com **DLQ configurada desde o início**
+  (não como melhoria futura), Redis com senha obrigatória (uso exclusivo de `stats-service`),
+  n8n (webhook do Telegram, não depende de nenhum outro container). Healthcheck em todos —
+  sempre em `CMD-SHELL` quando o comando usa variável de ambiente, porque exec form não expande
+  `$$VAR`. Ver `../docs/services/infra.md` e `../docs/OBSERVABILITY-AND-CONFIG.md`.
+- **Topologia do RabbitMQ é contrato, não configuração local**: exchanges/filas/bindings vivem em
+  `rabbitmq/definitions.json` e estão documentados em `../docs/API-CONTRACTS.md` seção "Topologia
+  RabbitMQ" — `bets-service` e `stats-service` consomem/publicam **sem redeclarar**. Mudar um
+  nome ou argumento aqui é mudança de contrato e atualiza aquela nota no mesmo commit.
+- **A topologia é aplicada pós-boot, não por `load_definitions`**: o container one-shot
+  `rabbitmq-init` roda `rabbitmq/apply-definitions.sh` depois do broker ficar `healthy`. Não
+  troque isso por `load_definitions` no `rabbitmq.conf`: um nó novo que importa definições **não
+  cria o vhost `/` nem o usuário default**, e o healthcheck continua passando — falha silenciosa.
+  Racional completo em `../docs/DECISIONS-LOG.md` (2026-08-03).
 - **`feat-002` (teste de resiliência)**: **bloqueada até `epic-004` (stats-service) e
   `epic-005` (telegram-integration) da raiz estarem `done`** — dependência cross-repositório, não
   expressável no `dependencies` deste `feature_list.json`. Confira o `feature_list.json` da raiz
@@ -76,5 +86,15 @@ Antes de encerrar (before ending a session): atualize `progress.md` deste harnes
 ## Verificação
 
 ```bash
-./init.sh
+cp .env.example .env       # uma vez; o .env real nunca e versionado
+./init.sh                  # valida o docker-compose.yml (docker compose config)
+
+docker compose up -d
+docker compose ps          # os 6 containers de longa duracao devem estar (healthy)
+docker compose logs rabbitmq-init   # confirma que a topologia foi aplicada
+docker compose down -v     # estado limpo para a proxima sessao
 ```
+
+`rabbitmq-init` é um container one-shot: `docker compose up -d` **não** espera por ele nem falha
+se ele falhar. Sempre confira o log dele — sem a topologia aplicada, o broker sobe vazio e o
+problema só apareceria no `epic-003`.
