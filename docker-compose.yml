@@ -1,0 +1,161 @@
+# Infraestrutura compartilhada do ambiente de desenvolvimento local.
+# Ver docs/services/infra.md (componentes e diagramas de resiliencia) e
+# docs/ARCHITECTURE.md (Database per Service, DLQ desde o inicio).
+#
+# Este arquivo NAO declara nenhum servico de aplicacao (auth-service, bets-service,
+# stats-service, api-gateway, telegram-integration, web) — cada um vive no seu
+# proprio repositorio e entra no seu proprio epic.
+#
+# Nenhuma variavel tem valor default: sem .env o `up` falha em vez de subir com
+# credencial conhecida. Copie .env.example para .env antes de subir.
+
+name: stakevault-infra
+
+services:
+  # --- PostgreSQL: um container por servico (Database per Service) ---------
+  # Instancias distintas, nao bancos distintos no mesmo servidor: nenhum servico
+  # tem sequer conectividade com o Postgres do outro. Dentro de cada banco ainda
+  # ha isolamento por schema por tenant (ver docs/DATA-MODEL.md).
+  postgres-auth:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_AUTH_DB}
+      POSTGRES_USER: ${POSTGRES_AUTH_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      # CMD-SHELL (nao exec form): so o shell expande $$POSTGRES_USER.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [stakevault]
+
+  postgres-bets:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_BETS_DB}
+      POSTGRES_USER: ${POSTGRES_BETS_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_BETS_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-bets-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [stakevault]
+
+  postgres-stats:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_STATS_DB}
+      POSTGRES_USER: ${POSTGRES_STATS_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_STATS_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-stats-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [stakevault]
+
+  # --- RabbitMQ: broker entre bets-service (produtor) e stats-service ------
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # console de gerenciamento
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running", "--quiet"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks: [stakevault]
+
+  # Container one-shot: aplica exchanges/filas/bindings depois que o broker esta
+  # healthy. Ver rabbitmq/apply-definitions.sh para por que a topologia nao e
+  # carregada via `load_definitions`.
+  rabbitmq-init:
+    image: curlimages/curl:8.11.1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    volumes:
+      - ./rabbitmq/definitions.json:/definitions.json:ro
+      - ./rabbitmq/apply-definitions.sh:/apply-definitions.sh:ro
+    entrypoint: ["/bin/sh", "/apply-definitions.sh"]
+    restart: "no"
+    networks: [stakevault]
+
+  # --- Redis: cache do stats-service (Cache-Aside), nenhum outro servico ---
+  redis:
+    image: redis:7-alpine
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [stakevault]
+
+  # --- n8n: recebe o webhook do bot Telegram e aciona telegram-integration --
+  # Nao depende de nenhum servico acima: o fluxo documentado e webhook -> n8n ->
+  # rotina Python -> POST /api/v1/bets no api-gateway (ver
+  # docs/services/telegram-integration.md). n8n nunca fala com o broker.
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:1.100.0
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_PORT: "5678"
+      GENERIC_TIMEZONE: America/Sao_Paulo
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks: [stakevault]
+
+volumes:
+  postgres-auth-data:
+  postgres-bets-data:
+  postgres-stats-data:
+  rabbitmq-data:
+  redis-data:
+  n8n-data:
+
+networks:
+  stakevault:
+    driver: bridge
