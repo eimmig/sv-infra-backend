@@ -1,0 +1,30 @@
+name: CI
+
+# Pipeline adaptada para este repositorio: sem passo de i18n (nao ha texto de usuario) e sem
+# SonarCloud (nao ha codigo de aplicacao para analisar) - ver docs/CI-CD.md. So changelog +
+# validacao do docker-compose.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. Changelog - ver docs/CI-CD.md (vault local, nao versionado neste repo)
+      - name: Validar atualizacao do CHANGELOG.md
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/validate-changelog.sh CHANGELOG.md
+
+      # 2. Build (equivalente pratico para este repositorio: validar o compose)
+      - name: Validar docker-compose.yml
+        run: docker compose config

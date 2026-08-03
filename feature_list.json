@@ -1,0 +1,20 @@
+{
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "Infraestrutura Docker Compose (fecha epic-001 da raiz)",
+      "description": "infra/docker-compose.yml com PostgreSQL (uma instancia logica por servico de aplicacao - Database per Service - ver auth-service/bets-service/stats-service), RabbitMQ com Dead Letter Queue (DLQ) configurada desde o inicio (nao adicionada depois), Redis (cache exclusivo de stats-service), n8n (recebe webhook do bot Telegram, aciona telegram-integration). Healthchecks configurados em cada servico de infra para que dependentes (ex.: stats-service esperando RabbitMQ) so subam depois que a dependencia estiver de fato pronta - ver docs/OBSERVABILITY-AND-CONFIG.md. Definicao de pronto: 'docker compose config' valido e 'docker compose up' com todos os healthchecks passando. Repositorio GitHub: https://github.com/eimmig/sv-infra-backend.git.",
+      "dependencies": [],
+      "status": "in-progress",
+      "evidence": ""
+    },
+    {
+      "id": "feat-002",
+      "name": "Teste de resiliencia cross-service: DLQ e retry (fecha epic-007 da raiz)",
+      "description": "Confirmar que falhas consecutivas no consumo de BetCreated/BetSettled vao para a Dead Letter Queue em vez de travar o stats-service ou perder a mensagem. Teste cross-service: derrubar stats-service, publicar eventos via bets-service, subir stats-service de novo, confirmar reprocessamento (mensagens acumuladas na fila, nao perdidas) - ver docs/services/infra.md secao 'Resiliencia: DLQ e retry automatico' para os diagramas de sequencia esperados. Rotulado como RNF06 (Escalabilidade) na tabela de requisitos, mas o criterio testado aqui e de fato tolerancia a falha/confiabilidade, nao volume - ver docs/DECISIONS-LOG.md antes de fechar esta feature. BLOQUEADO ate epic-004 (stats-service) e epic-005 (telegram-integration) da raiz estarem done - dependencia cross-repositorio, nao expressavel no campo 'dependencies' abaixo (que so referencia features deste mesmo repositorio/harness). Conferir feature_list.json da raiz antes de iniciar.",
+      "dependencies": ["feat-001"],
+      "status": "not-started",
+      "evidence": ""
+    }
+  ]
+}

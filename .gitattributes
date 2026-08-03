@@ -1,0 +1,8 @@
+# Shell scripts and YAML must keep LF endings — they run on Linux (CI runners and
+# containers). Without this, a Windows checkout (core.autocrlf=true) can produce CRLF
+# copies that fail with "bad interpreter: /bin/bash^M".
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.conf text eol=lf
