@@ -23,3 +23,9 @@ CI (ver `docs/CI-CD.md`).
 - `.env.example` com todas as variáveis necessárias e `.gitignore` cobrindo o `.env` real.
 - `.gitattributes` fixando LF em `.sh`/`.yml`/`.json`, para checkout Windows não gerar CRLF que
   quebra em runner Linux.
+
+### Changed
+
+- `feature_list.json` ganhou o campo `plan_review` por feature, pré-requisito para marcar uma
+  feature como `in-progress` (mesmo papel que `evidence` tem para `done`). Mudança aplicada aos
+  7 harnesses do projeto — ver `CLAUDE.md` da raiz, seção "Regras de trabalho".

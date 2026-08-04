@@ -68,6 +68,11 @@ lugar real para código/config versionados, seguindo o mesmo padrão dos outros 
 
 Uma feature deste harness só está `done` quando (done only when):
 
+> **Antes de começar** (não é item de `done`, é pré-requisito de `in-progress`): o campo
+> `plan_review` daquela feature em `feature_list.json` precisa estar preenchido com o
+> resultado do `Plan Reviewer` — ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+
+
 - [ ] Implementada e rodando via `./init.sh` sem erro (`docker compose config` válido).
 - [ ] Para `feat-001`: `docker compose up` sobe com todos os healthchecks passando.
 - [ ] Para `feat-002`: teste de resiliência documentado em `../docs/services/infra.md` executado
