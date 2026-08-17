@@ -75,7 +75,7 @@
     },
     {
       "id": "feat-003",
-      "name": "Bootstrap dos 6 repositorios de aplicacao e setup do SonarCloud (fecha epic-009 da raiz)",
+      "name": "Bootstrap dos repositórios e setup do SonarCloud",
       "description": "Setup que precede qualquer implementacao de servico (decisao do usuario, 2026-08-17). (a) Os 6 repositorios de aplicacao tem 'git init' e remote desde 2026-08-02 mas ZERO commits e nenhum .gitignore/.gitattributes - criar os dois por stack (Java/Maven, Python/uv, Angular/npm), commit inicial do harness em main, criar e publicar develop. (b) SonarCloud: organizacao, 6 projetos (chave = nome do repositorio, ex. sv-auth-backend), token como secret SONAR_TOKEN e org key como variable SONAR_ORGANIZATION em cada um dos 6 repositorios GitHub. infra/ nao usa SonarCloud (sem codigo de aplicacao). Risco central identificado antes do plan review: os 6 ci.yml disparam em 'push: [main, develop]' e os passos 2-5 (i18n, build, testes, Sonar) NAO tem guarda - um commit inicial so de harness deixaria os 6 repositorios com CI vermelha ate o feat-001 de cada servico. Ver docs/CI-CD.md e ../docs/DECISIONS-LOG.md (2026-08-17).",
       "dependencies": [],
       "status": "in-progress",
@@ -84,48 +84,107 @@
       "subtasks": [
         {
           "id": "feat-003.1",
-          "name": "Guarda por arquivo-marcador (hashFiles) nos 6 ci.yml, cobrindo tambem os steps de setup de toolchain, e bit de execucao dos scripts .sh nos 7 repositorios (git update-index --chmod=+x)",
+          "name": "Impedir que a CI falhe em repositório sem código",
           "status": "done",
-          "jira": "SV-2"
+          "jira": "SV-2",
+          "detail": "Cada passo da pipeline passa a rodar só quando o projeto daquele repositório existe, e o validador de changelog ganha permissão de execução.",
+          "checklist": [
+            "Adicionar `if: hashFiles('<marcador>') != ''` aos passos 2–5 dos 6 workflows e também aos steps de setup de toolchain — `actions/setup-node` com `cache: npm` falha o job quando não há lockfile, não apenas pula.",
+            "Marcadores: `pom.xml` nos 4 serviços Java, `pyproject.toml` no telegram-integration, `package-lock.json` no web (o cache e o `npm ci` precisam do lock, não do manifesto).",
+            "Corrigir o modo de `.github/scripts/validate-changelog.sh` para 100755 nos 7 repositórios (`git update-index --chmod=+x`) — está 100644 e o workflow o invoca direto, o que quebraria o primeiro PR com Permission denied."
+          ],
+          "validation": "`yaml.safe_load` nos 7 workflows e `git ls-files -s .github/scripts/` mostrando 100755.",
+          "owner": "agente"
         },
         {
           "id": "feat-003.2",
-          "name": ".gitignore e .gitattributes por stack (Java/Maven, Python/uv, Angular/npm) nos 6 repositorios de aplicacao",
+          "name": "Adicionar .gitignore e .gitattributes aos 6 repositórios",
           "status": "done",
-          "jira": "SV-3"
+          "jira": "SV-3",
+          "detail": "Nenhum dos 6 tem os dois arquivos. Sem eles, o primeiro `git add -A` de cada serviço arrastaria `target/`, `node_modules/` ou `.venv/` para o repositório.",
+          "checklist": [
+            "`.gitignore` por stack: Maven (`target/`, `*.exec`), Python/uv (`.venv/`, `__pycache__/`, `.ruff_cache/`, `coverage.xml`), Angular (`node_modules/`, `dist/`, `.angular/`, `coverage/`).",
+            "Em todos: `.env` e caches de IDE/SO.",
+            "`.gitattributes` fixando LF em `.sh`, `.yml`, `.json` e `.properties` — checkout Windows gerando CRLF quebra script no runner Linux."
+          ],
+          "owner": "agente"
         },
         {
           "id": "feat-003.3",
-          "name": "Commit inicial do harness em main e push nos 6 repositorios (direto em main: repositorio vazio nao tem branch base para PR)",
+          "name": "Publicar o commit inicial dos 6 repositórios",
           "status": "not-started",
-          "jira": "SV-4"
+          "jira": "SV-4",
+          "detail": "Commit direto em `main` — um repositório vazio não tem branch base, então não há PR possível para o commit inicial. Mesmo caminho já usado no infra.",
+          "checklist": [
+            "Em cada repositório: `git add -A` e commit em Conventional Commits, em inglês.",
+            "`git push -u origin main`.",
+            "Confirmar que o remote estava mesmo vazio antes (`git ls-remote --heads origin`), para o push não ser rejeitado por non-fast-forward."
+          ],
+          "validation": "Os 6 repositórios com `main` visível no GitHub e a Action do push concluída em verde.",
+          "owner": "agente"
         },
         {
           "id": "feat-003.4",
-          "name": "Criar e publicar develop nos 6 repositorios e confirmar CI verde no push (todos os passos skipped, job success)",
+          "name": "Criar a branch develop nos 6 repositórios",
           "status": "not-started",
-          "jira": "SV-5"
+          "jira": "SV-5",
+          "detail": "`develop` é a base de todo trabalho e o destino dos PRs — precisa existir antes da primeira feature de qualquer serviço.",
+          "checklist": [
+            "`git checkout -b develop` e `git push -u origin develop` em cada repositório.",
+            "Conferir que a pipeline disparada pelo push termina verde, com os passos 2–5 marcados como skipped."
+          ],
+          "validation": "Aba Actions de cada repositório com execução verde; nenhum passo em vermelho.",
+          "owner": "agente"
         },
         {
           "id": "feat-003.5",
-          "name": "SonarCloud: criar organizacao e os 6 projetos (chave = nome do repositorio) - acao manual do usuario, agente sem navegador nem gh CLI",
+          "name": "Criar a organização e os projetos no SonarCloud",
           "status": "not-started",
-          "jira": "SV-6"
+          "jira": "SV-6",
+          "detail": "A análise de qualidade precisa existir do lado do SonarCloud antes de a pipeline conseguir enviar resultado.",
+          "checklist": [
+            "Criar a organização no SonarCloud vinculada à conta GitHub `eimmig`.",
+            "Criar 6 projetos, chave igual ao nome do repositório: sv-api-gateway, sv-auth-backend, sv-bets-backend, sv-stats-backend, sv-telegram-integration-backend, sv-frontend.",
+            "Não criar projeto para sv-infra-backend — esse repositório não tem código de aplicação e sua pipeline não chama o Sonar.",
+            "Gerar um token de análise e guardá-lo para a próxima subtarefa."
+          ],
+          "owner": "usuario"
         },
         {
           "id": "feat-003.6",
-          "name": "Configurar secret SONAR_TOKEN e variable SONAR_ORGANIZATION nos 6 repositorios GitHub - acao manual do usuario",
+          "name": "Configurar as credenciais do Sonar nos 6 repositórios",
           "status": "not-started",
-          "jira": "SV-7"
+          "jira": "SV-7",
+          "detail": "Sem o token e a org key em cada repositório, o passo de análise falha por falta de credencial assim que o primeiro serviço tiver código.",
+          "checklist": [
+            "Em cada um dos 6 repositórios do GitHub: adicionar o secret `SONAR_TOKEN`.",
+            "Adicionar a variable `SONAR_ORGANIZATION` (não é secret — a org key não é sensível).",
+            "A organização é a mesma para os 6, mas a variable precisa ser configurada repositório por repositório: o GitHub não compartilha variables entre repositórios."
+          ],
+          "owner": "usuario"
         },
         {
           "id": "feat-003.7",
-          "name": "Atualizar docs/CI-CD.md (guarda por marcador como convencao) e infra/CLAUDE.md (escopo cross-repositorio desta feature), registrar evidence e fechar epic-009 na raiz",
+          "name": "Documentar a nova convenção e fechar o epic",
           "status": "not-started",
-          "jira": "SV-8"
+          "jira": "SV-8",
+          "detail": "A guarda por arquivo-marcador é uma convenção nova de CI e precisa estar escrita onde as próximas sessões vão procurar.",
+          "checklist": [
+            "docs/CI-CD.md: documentar a guarda por arquivo-marcador e qual é o marcador de cada stack.",
+            "infra/CLAUDE.md: registrar que esta feature é cross-repositório por natureza — o escopo declarado hoje fala só em orquestração local e teste de resiliência.",
+            "Preencher `evidence` em infra/feature_list.json e marcar epic-009 como done na raiz."
+          ],
+          "owner": "agente"
         }
       ],
-      "evidence": ""
+      "evidence": "",
+      "goal": "Deixar os 7 repositórios num estado em que a pipeline de CI roda de verdade — antes de qualquer serviço começar a ser implementado.",
+      "scope": [
+        "Os 6 repositórios de aplicação hoje têm remote configurado mas nenhum commit: ganham .gitignore/.gitattributes por stack, commit inicial em main e branch develop publicada.",
+        "Os 6 workflows de CI passam a pular seus passos enquanto o projeto não existe, em vez de falhar — hoje um repositório só com harness ficaria vermelho desde o primeiro push.",
+        "SonarCloud: organização, 6 projetos (chave = nome do repositório), token e org key configurados em cada repositório do GitHub.",
+        "infra/ não entra no SonarCloud — não tem código de aplicação para analisar."
+      ]
     }
   ]
 }
