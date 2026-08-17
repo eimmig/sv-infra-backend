@@ -91,7 +91,7 @@
         {
           "id": "feat-003.2",
           "name": ".gitignore e .gitattributes por stack (Java/Maven, Python/uv, Angular/npm) nos 6 repositorios de aplicacao",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-3"
         },
         {

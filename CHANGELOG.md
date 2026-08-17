@@ -34,6 +34,11 @@ CI (ver `docs/CI-CD.md`).
   `name`, `status` e `jira`) por feature. `feat-001` foi retro-preenchida com as 8 subtasks que
   a implementação de fato teve; os campos `jira` ficam vazios porque a story foi entregue antes
   da decisão de espelhar o backlog no Jira. Ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+- Guarda por arquivo-marcador (`hashFiles`) nos 6 `ci.yml` dos repositórios de aplicação e
+  `.gitignore`/`.gitattributes` por stack nos mesmos 6 — preparados aqui (`feat-003`), aplicados
+  no commit inicial de cada um. Sem a guarda, um repositório só com harness ficaria com CI
+  vermelha desde o primeiro push, porque `actions/setup-node` com `cache: npm` **falha** o job sem
+  lockfile e `mvn package`/`npm ci`/`uv sync` não têm projeto para construir.
 - `.github/workflows/ci.yml`: comentário explicitando que a validação do `CHANGELOG.md` roda em
   **todo** PR, inclusive nos de subtask → branch da story, cujas linhas se acumulam em
   `[Unreleased]` até o merge em `develop`.
