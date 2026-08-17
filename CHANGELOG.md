@@ -34,6 +34,12 @@ CI (ver `docs/CI-CD.md`).
   `name`, `status` e `jira`) por feature. `feat-001` foi retro-preenchida com as 8 subtasks que
   a implementação de fato teve; os campos `jira` ficam vazios porque a story foi entregue antes
   da decisão de espelhar o backlog no Jira. Ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+- Bootstrap dos 6 repositórios de aplicação (`feat-003`): commit inicial em `main` e branch
+  `develop` publicados em `sv-api-gateway`, `sv-auth-backend`, `sv-bets-backend`,
+  `sv-stats-backend`, `sv-telegram-integration-backend` e `sv-frontend`. Só harness, sem código
+  de aplicação. `init.sh` e `.github/scripts/validate-changelog.sh` versionados como `100755` nos
+  7 repositórios — o `CLAUDE.md` manda rodar `./init.sh`, que falharia num clone Linux com o bit
+  ausente.
 - Guarda por arquivo-marcador (`hashFiles`) nos 6 `ci.yml` dos repositórios de aplicação e
   `.gitignore`/`.gitattributes` por stack nos mesmos 6 — preparados aqui (`feat-003`), aplicados
   no commit inicial de cada um. Sem a guarda, um repositório só com harness ficaria com CI
