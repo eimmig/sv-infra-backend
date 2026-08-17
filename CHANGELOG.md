@@ -47,6 +47,9 @@ CI (ver `docs/CI-CD.md`).
 - Chave de projeto do SonarCloud alinhada ao formato que a ferramenta gera ao importar do GitHub
   (`eimmig_<repo>`) nos 6 repositórios de aplicação — `feat-003.8`, descoberta durante a
   implementação e acrescentada ao backlog em vez de virar trabalho invisível.
+- Credencial do SonarCloud distribuída para os 6 repositórios de aplicação (secret `SONAR_TOKEN`,
+  variable `SONAR_ORGANIZATION`) por `tools/sonar_setup.py`, que valida token, organização e
+  existência dos 6 projetos contra a API do SonarCloud antes de gravar, e nunca imprime o token.
 - Guarda por arquivo-marcador (`hashFiles`) nos 6 `ci.yml` dos repositórios de aplicação e
   `.gitignore`/`.gitattributes` por stack nos mesmos 6 — preparados aqui (`feat-003`), aplicados
   no commit inicial de cada um. Sem a guarda, um repositório só com harness ficaria com CI

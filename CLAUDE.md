@@ -51,6 +51,14 @@ lugar real para código/config versionados, seguindo o mesmo padrão dos outros 
   antes de iniciar. Teste de aceite: derrubar `stats-service`, publicar eventos via
   `bets-service`, subir `stats-service` de novo, confirmar reprocessamento sem perda — ver
   `../docs/services/infra.md` seção "Resiliência" para os diagramas esperados.
+- **`feat-003` é cross-repositório por natureza** (bootstrap dos 6 repositórios + SonarCloud,
+  entregue em 2026-08-17): é a exceção declarada à regra de escopo acima. Ela edita `ci.yml`,
+  `.gitignore`/`.gitattributes` e configuração de CI **dos outros 6 repositórios**, nunca código
+  de aplicação. O motivo de morar aqui é o mesmo de `feat-001`/`feat-002`: nenhum serviço de
+  aplicação é dono desse trabalho, e a raiz não é um repositório. Consequência prática registrada
+  no `plan_review` daquela feature: o commit inicial de um repositório vazio **não** passa por
+  `feature/`→PR (não existe branch base), então vai direto em `main`; a branch da story vive aqui,
+  levando só as mudanças de harness.
 - **Sem arquitetura hexagonal, sem i18n**: este harness não tem código de aplicação nem texto
   voltado ao usuário final — as convenções de `../docs/CONVENTIONS.md` sobre estrutura
   `domain/`/`application/`/`adapter/` e internacionalização não se aplicam aqui.
