@@ -126,7 +126,7 @@
         {
           "id": "feat-003.4",
           "name": "Criar a branch develop nos 6 repositórios",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-5",
           "detail": "`develop` é a base de todo trabalho e o destino dos PRs — precisa existir antes da primeira feature de qualquer serviço.",
           "checklist": [

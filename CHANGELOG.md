@@ -40,6 +40,10 @@ CI (ver `docs/CI-CD.md`).
   de aplicação. `init.sh` e `.github/scripts/validate-changelog.sh` versionados como `100755` nos
   7 repositórios — o `CLAUDE.md` manda rodar `./init.sh`, que falharia num clone Linux com o bit
   ausente.
+- Verificado que a guarda por arquivo-marcador funciona no GitHub: nos 12 pushes (6 × `main`,
+  6 × `develop`) a pipeline ficou verde, com `checkout` executado e todos os passos seguintes
+  `skipped`. Sem a guarda, o `actions/setup-node` com `cache: npm` teria falhado por ausência de
+  lockfile.
 - Guarda por arquivo-marcador (`hashFiles`) nos 6 `ci.yml` dos repositórios de aplicação e
   `.gitignore`/`.gitattributes` por stack nos mesmos 6 — preparados aqui (`feat-003`), aplicados
   no commit inicial de cada um. Sem a guarda, um repositório só com harness ficaria com CI
