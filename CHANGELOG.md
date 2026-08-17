@@ -44,6 +44,9 @@ CI (ver `docs/CI-CD.md`).
   6 × `develop`) a pipeline ficou verde, com `checkout` executado e todos os passos seguintes
   `skipped`. Sem a guarda, o `actions/setup-node` com `cache: npm` teria falhado por ausência de
   lockfile.
+- Chave de projeto do SonarCloud alinhada ao formato que a ferramenta gera ao importar do GitHub
+  (`eimmig_<repo>`) nos 6 repositórios de aplicação — `feat-003.8`, descoberta durante a
+  implementação e acrescentada ao backlog em vez de virar trabalho invisível.
 - Guarda por arquivo-marcador (`hashFiles`) nos 6 `ci.yml` dos repositórios de aplicação e
   `.gitignore`/`.gitattributes` por stack nos mesmos 6 — preparados aqui (`feat-003`), aplicados
   no commit inicial de cada um. Sem a guarda, um repositório só com harness ficaria com CI
