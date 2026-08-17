@@ -40,6 +40,12 @@ CI (ver `docs/CI-CD.md`).
 
 ### Fixed
 
+- `.github/scripts/validate-changelog.sh` passou a ser versionado como `100755` (bit de execução).
+  Estava como `100644` desde o commit inicial — o `run:` do workflow o invoca direto, então o
+  primeiro PR deste repositório teria falhado com *Permission denied*. Passou despercebido porque
+  o passo só roda em `pull_request` e todos os commits até aqui foram diretos em `develop`.
+  Encontrado pelo `Plan Reviewer` de `feat-003` (`SV-2`), antes de o mesmo defeito ser propagado
+  para os outros 6 repositórios.
 - `feat-002` não cita mais **RNF06 (Escalabilidade)** como justificativa do teste de resiliência.
   Conferido no PDF do TCC 1 em 2026-08-17: a tabela original tem 6 RNFs e nenhum é sobre
   tolerância a falha — RNF06 é volume. A base do teste no TCC 1 é a prosa da seção 4.1 (p. 30) e

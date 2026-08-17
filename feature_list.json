@@ -72,6 +72,60 @@
       "jira": "",
       "subtasks": [],
       "evidence": ""
+    },
+    {
+      "id": "feat-003",
+      "name": "Bootstrap dos 6 repositorios de aplicacao e setup do SonarCloud (fecha epic-009 da raiz)",
+      "description": "Setup que precede qualquer implementacao de servico (decisao do usuario, 2026-08-17). (a) Os 6 repositorios de aplicacao tem 'git init' e remote desde 2026-08-02 mas ZERO commits e nenhum .gitignore/.gitattributes - criar os dois por stack (Java/Maven, Python/uv, Angular/npm), commit inicial do harness em main, criar e publicar develop. (b) SonarCloud: organizacao, 6 projetos (chave = nome do repositorio, ex. sv-auth-backend), token como secret SONAR_TOKEN e org key como variable SONAR_ORGANIZATION em cada um dos 6 repositorios GitHub. infra/ nao usa SonarCloud (sem codigo de aplicacao). Risco central identificado antes do plan review: os 6 ci.yml disparam em 'push: [main, develop]' e os passos 2-5 (i18n, build, testes, Sonar) NAO tem guarda - um commit inicial so de harness deixaria os 6 repositorios com CI vermelha ate o feat-001 de cada servico. Ver docs/CI-CD.md e ../docs/DECISIONS-LOG.md (2026-08-17).",
+      "dependencies": [],
+      "status": "in-progress",
+      "plan_review": "2026-08-17, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano antes de qualquer codigo. Veredito: REVISE. Achados corrigidos no plano antes da implementacao: (BLOCKER) actions/setup-node@v4 com 'cache: npm' FALHA o job quando nao existe package-lock.json (actions/setup-node#282) - a guarda por arquivo-marcador precisa cobrir tambem os steps de setup de toolchain, nao so os passos 2-5 como o plano original propunha; (BLOCKER) .github/scripts/validate-changelog.sh esta no indice do git como 100644, sem bit de execucao (confirmado em infra: 'git ls-files -s' + core.fileMode=false, padrao no Windows) - 'run: .github/scripts/validate-changelog.sh' quebraria com Permission denied no primeiro PR de qualquer repositorio; bug latente ja presente em infra, mascarado porque o step so roda em pull_request e nunca houve PR ali. Corrigido com 'git update-index --chmod=+x' nos 7 repositorios; (MAJOR) o plano nao resolvia o conflito entre a feature viver em infra/ e o trabalho acontecer em 6 outros repositorios: o commit inicial NAO pode seguir o modelo feature/subtask + PR (nao existe branch base num repositorio vazio) - decidido que o bootstrap dos 6 e commit direto em main, como foi em infra, e que a branch feature/<chave> vive so em infra/, levando as mudancas de harness; (MAJOR) plano nao previa atualizar docs/CI-CD.md (a guarda por marcador vira convencao nova) nem infra/CLAUDE.md (escopo declarado do harness hoje diz 'so orquestracao local e teste de resiliencia'); (MINOR) versoes de action defasadas - astral-sh/setup-uv@v3 (atual ~v10, tags minor removidas) e SonarSource/sonarqube-scan-action@v4 (atual ~v8); alem disso '-Dsonar.host.url' e desnecessario para SonarQube Cloud (doc oficial da action: 'SONAR_HOST_URL ... not needed for SonarQube Cloud'). Registrado como divida, nao corrigido aqui - nenhuma das duas actions chega a executar enquanto nao houver projeto; (MINOR) actions/setup-java com 'cache: maven' sem pom.xml gera warning de cache, nao falha - guarda aplicada por consistencia, nao por defeito. Verificado por evidencia: 'git ls-remote --heads origin' nos 6 confirma remoto vazio (push inicial nao sera rejeitado por non-fast-forward). Ordem validada: a guarda por marcador e o que torna seguro publicar main/develop ANTES de configurar SONAR_TOKEN - sem ela, o step 5 rodaria no push e falharia. Rodada de desafio independente executada como passes proprios (simulacao de execucao, implementacao fresca, analise adversarial), sem subagentes - independencia reduzida, declarada.",
+      "jira": "SV-1",
+      "subtasks": [
+        {
+          "id": "feat-003.1",
+          "name": "Guarda por arquivo-marcador (hashFiles) nos 6 ci.yml, cobrindo tambem os steps de setup de toolchain, e bit de execucao dos scripts .sh nos 7 repositorios (git update-index --chmod=+x)",
+          "status": "done",
+          "jira": "SV-2"
+        },
+        {
+          "id": "feat-003.2",
+          "name": ".gitignore e .gitattributes por stack (Java/Maven, Python/uv, Angular/npm) nos 6 repositorios de aplicacao",
+          "status": "not-started",
+          "jira": "SV-3"
+        },
+        {
+          "id": "feat-003.3",
+          "name": "Commit inicial do harness em main e push nos 6 repositorios (direto em main: repositorio vazio nao tem branch base para PR)",
+          "status": "not-started",
+          "jira": "SV-4"
+        },
+        {
+          "id": "feat-003.4",
+          "name": "Criar e publicar develop nos 6 repositorios e confirmar CI verde no push (todos os passos skipped, job success)",
+          "status": "not-started",
+          "jira": "SV-5"
+        },
+        {
+          "id": "feat-003.5",
+          "name": "SonarCloud: criar organizacao e os 6 projetos (chave = nome do repositorio) - acao manual do usuario, agente sem navegador nem gh CLI",
+          "status": "not-started",
+          "jira": "SV-6"
+        },
+        {
+          "id": "feat-003.6",
+          "name": "Configurar secret SONAR_TOKEN e variable SONAR_ORGANIZATION nos 6 repositorios GitHub - acao manual do usuario",
+          "status": "not-started",
+          "jira": "SV-7"
+        },
+        {
+          "id": "feat-003.7",
+          "name": "Atualizar docs/CI-CD.md (guarda por marcador como convencao) e infra/CLAUDE.md (escopo cross-repositorio desta feature), registrar evidence e fechar epic-009 na raiz",
+          "status": "not-started",
+          "jira": "SV-8"
+        }
+      ],
+      "evidence": ""
     }
   ]
 }
