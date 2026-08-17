@@ -37,3 +37,11 @@ CI (ver `docs/CI-CD.md`).
 - `.github/workflows/ci.yml`: comentário explicitando que a validação do `CHANGELOG.md` roda em
   **todo** PR, inclusive nos de subtask → branch da story, cujas linhas se acumulam em
   `[Unreleased]` até o merge em `develop`.
+
+### Fixed
+
+- `feat-002` não cita mais **RNF06 (Escalabilidade)** como justificativa do teste de resiliência.
+  Conferido no PDF do TCC 1 em 2026-08-17: a tabela original tem 6 RNFs e nenhum é sobre
+  tolerância a falha — RNF06 é volume. A base do teste no TCC 1 é a prosa da seção 4.1 (p. 30) e
+  do capítulo de arquitetura, que especificam *retries* + DLQ sem atribuir ID ao requisito.
+  Nenhum RNF novo foi criado. Ver `docs/REQUIREMENTS.md` e `docs/DECISIONS-LOG.md` no vault.
