@@ -164,6 +164,21 @@
           "owner": "usuario"
         },
         {
+          "id": "feat-003.8",
+          "name": "Alinhar as chaves de projeto ao padrão do SonarCloud",
+          "detail": "Ao importar um repositório do GitHub, o SonarCloud gera a chave do projeto como `<org>_<repo>` — os workflows usam a forma sem prefixo, e a análise falharia com \"project not found\".",
+          "checklist": [
+            "Trocar `sonar.projectKey` nos 4 workflows Java para `eimmig_<repo>` (eimmig_sv-api-gateway, eimmig_sv-auth-backend, eimmig_sv-bets-backend, eimmig_sv-stats-backend).",
+            "Trocar `sonar.projectKey` nos dois `sonar-project.properties` (apps/web, services/telegram-integration) pela mesma forma.",
+            "Atualizar a tabela pasta → repositório de docs/CI-CD.md, que hoje diz que a chave do projeto é igual ao nome do repositório.",
+            "Renomear a chave na UI do SonarCloud é a alternativa descartada: seriam 6 edições manuais para divergir do padrão da própria ferramenta."
+          ],
+          "validation": "Análise do Sonar concluindo no primeiro serviço que tiver código (feat-001 do auth-service), sem erro de projeto inexistente.",
+          "owner": "agente",
+          "status": "done",
+          "jira": "SV-9"
+        },
+        {
           "id": "feat-003.7",
           "name": "Documentar a nova convenção e fechar o epic",
           "status": "not-started",
