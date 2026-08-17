@@ -29,3 +29,11 @@ CI (ver `docs/CI-CD.md`).
 - `feature_list.json` ganhou o campo `plan_review` por feature, pré-requisito para marcar uma
   feature como `in-progress` (mesmo papel que `evidence` tem para `done`). Mudança aplicada aos
   7 harnesses do projeto — ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+- `feature_list.json` ganhou os campos `jira` (chave da story, que também nomeia a branch de
+  trabalho) e `subtasks` (passos de implementação vindos do `Plan Reviewer`, cada um com `id`,
+  `name`, `status` e `jira`) por feature. `feat-001` foi retro-preenchida com as 8 subtasks que
+  a implementação de fato teve; os campos `jira` ficam vazios porque a story foi entregue antes
+  da decisão de espelhar o backlog no Jira. Ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+- `.github/workflows/ci.yml`: comentário explicitando que a validação do `CHANGELOG.md` roda em
+  **todo** PR, inclusive nos de subtask → branch da story, cujas linhas se acumulam em
+  `[Unreleased]` até o merge em `develop`.

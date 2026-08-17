@@ -7,6 +7,57 @@
       "dependencies": [],
       "status": "done",
       "plan_review": "2026-08-03, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano antes de qualquer codigo. Veredito: REVISE. Achados corrigidos no plano antes da implementacao: (BLOCKER) load_definitions impede a criacao do vhost / e do usuario default num no novo, e o healthcheck check_running ainda passa - trocado por container one-shot rabbitmq-init aplicando a topologia pos-boot; (MAJOR) healthcheck em exec form nao expande ${VAR}, o compose nunca ficaria healthy - trocado para CMD-SHELL; (MAJOR) depends_on rabbitmq no n8n contradiz o fluxo de docs/services/telegram-integration.md - removido; (MAJOR) tipo/argumentos da fila viram armadilha PRECONDITION_FAILED para bets-service/stats-service - promovidos a contrato em docs/API-CONTRACTS.md; (MINOR) DLQ at-most-once e x-delivery-limit divergente do default 20 - registrados em docs/DECISIONS-LOG.md. Ambiguidade Postgres (instancia logica vs instancias distintas) escalada ao usuario, que decidiu por tres containers separados. Rodada de desafio independente executada como passes proprios, sem subagentes - independencia reduzida, declarada.",
+      "jira": "",
+      "subtasks": [
+        {
+          "id": "feat-001.1",
+          "name": "Esqueleto do compose: rede stakevault, volumes nomeados e contrato de variaveis (.env.example + .gitignore, sem default para nenhuma variavel)",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.2",
+          "name": "Tres instancias PostgreSQL (postgres-auth 5432, postgres-bets 5433, postgres-stats 5434) com healthcheck pg_isready em CMD-SHELL",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.3",
+          "name": "RabbitMQ 4 com console de gerenciamento e healthcheck rabbitmq-diagnostics",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.4",
+          "name": "Topologia da DLQ versionada em rabbitmq/definitions.json (exchange bets.events, fila quorum stats.bet-events com x-delivery-limit 3 + DLX, fila stats.bet-events.dlq) e promovida a contrato em docs/API-CONTRACTS.md",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.5",
+          "name": "Container one-shot rabbitmq-init aplicando a topologia pos-boot via POST /api/definitions (load_definitions impediria a criacao do vhost e do usuario default)",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.6",
+          "name": "Redis com senha obrigatoria e healthcheck redis-cli em CMD-SHELL",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.7",
+          "name": "n8n para o webhook do Telegram, sem depends_on (nao fala com o broker)",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.8",
+          "name": "Verificacao ponta a ponta: init.sh, compose up com os 6 containers healthy, topologia conferida por rabbitmqctl, isolamento Postgres e NOAUTH do Redis, down -v",
+          "status": "done",
+          "jira": ""
+        }
+      ],
       "evidence": "Entregue em 2026-08-03 (branch feature/feat-001). Escopo final divergiu do texto acima em dois pontos, ambos registrados em docs/DECISIONS-LOG.md (2026-08-03): (a) tres containers Postgres separados (postgres-auth 5432, postgres-bets 5433, postgres-stats 5434) em vez de instancias logicas num container so - decisao do usuario; (b) topologia RabbitMQ aplicada pos-boot por um container one-shot rabbitmq-init (rabbitmq/apply-definitions.sh, POST /api/definitions) em vez de load_definitions, porque um no novo que importa definicoes nao cria o vhost / nem o usuario default e o healthcheck ainda assim passa (falha silenciosa apontada pelo Plan Reviewer antes de escrever codigo). Verificacao real executada: ./init.sh passou; 'docker compose up -d' subiu os 6 containers de longa duracao com status (healthy); 'rabbitmqctl list_queues name type arguments' confirmou stats.bet-events como quorum com x-dead-letter-exchange=bets.events.dlx e x-delivery-limit=3, e stats.bet-events.dlq como quorum; list_exchanges/list_bindings confirmaram bets.events (topic), bets.events.dlx (fanout) e as routing keys bet.created/bet.settled; psql confirmou os tres bancos isolados (auth/auth_user, bets/bets_user, stats/stats_user); redis-cli sem senha retornou NOAUTH (autenticacao ativa); 'docker compose config' passa sem .env (gate de CI). Stack derrubada com 'docker compose down -v'. Plan Reviewer e Delivery Reviewer rodados (rodada de desafio independente executada como passes proprios, sem subagentes - independencia reduzida, declarada)."
     },
     {
@@ -18,6 +69,8 @@
       ],
       "status": "not-started",
       "plan_review": "",
+      "jira": "",
+      "subtasks": [],
       "evidence": ""
     }
   ]
