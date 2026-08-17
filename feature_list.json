@@ -112,7 +112,7 @@
         {
           "id": "feat-003.3",
           "name": "Publicar o commit inicial dos 6 repositórios",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-4",
           "detail": "Commit direto em `main` — um repositório vazio não tem branch base, então não há PR possível para o commit inicial. Mesmo caminho já usado no infra.",
           "checklist": [
@@ -126,7 +126,7 @@
         {
           "id": "feat-003.4",
           "name": "Criar a branch develop nos 6 repositórios",
-          "status": "not-started",
+          "status": "in-progress",
           "jira": "SV-5",
           "detail": "`develop` é a base de todo trabalho e o destino dos PRs — precisa existir antes da primeira feature de qualquer serviço.",
           "checklist": [
