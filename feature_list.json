@@ -192,7 +192,43 @@
           "owner": "agente"
         }
       ],
-      "evidence": "Entregue em 2026-08-17 (branch feature/SV-1, story SV-1 com 8 sub-tasks SV-2..SV-9). Verificacao real executada: (a) os 7 repositorios com main e develop publicados - 12 pushes, nenhum rejeitado, remotos conferidos vazios antes com 'git ls-remote --heads origin'; (b) CI verde nos 6 repositorios em ambas as branches, confirmado com 'gh run list' e, no sv-frontend, passo a passo com 'gh run view --json jobs' - checkout em success e os 6 passos seguintes skipped, que e exatamente o efeito da guarda por arquivo-marcador; (c) organizacao 'eimmig' e os 6 projetos (eimmig_sv-*) confirmados via API do SonarCloud; (d) secret SONAR_TOKEN e variable SONAR_ORGANIZATION gravados nos 6 repositorios e reconferidos com 'python tools/sonar_setup.py --check'; (e) './init.sh' da raiz e do infra passando (exit 0); (f) os 6 ci.yml revalidados com yaml.safe_load apos cada edicao. Escopo divergiu do plano original em um ponto, registrado como subtarefa nova em vez de correcao silenciosa: feat-003.8 (SV-9), o alinhamento das chaves de projeto ao formato '<org>_<repo>' que o SonarCloud gera ao importar do GitHub - sem isso a primeira analise falharia com projeto inexistente. Dois defeitos foram encontrados pelo Plan Reviewer antes de qualquer codigo (setup-node com cache npm falhando sem lockfile; scripts .sh versionados sem bit de execucao, bug latente que ja existia no infra) e um terceiro durante a implementacao (init.sh com o mesmo problema de modo). Plan Reviewer e Delivery Reviewer rodados. Ferramenta nova instalada nesta feature: gh 2.97.0, sem a qual nao havia como confirmar (b).",
+      "evidence": {
+        "resumo": "Entregue em 2026-08-17 (branch `feature/SV-1`, story SV-1 com 8 sub-tasks SV-2..SV-9).",
+        "secoes": [
+          {
+            "titulo": "Verificação real executada",
+            "itens": [
+              "Os 7 repositórios com `main` e `develop` publicados — 12 pushes, nenhum rejeitado, remotos conferidos vazios antes com `git ls-remote --heads origin`.",
+              "CI verde nos 6 repositórios em ambas as branches, confirmado com `gh run list` e, no `sv-frontend`, passo a passo com `gh run view --json jobs` — checkout em success e os 6 passos seguintes skipped, exatamente o efeito da guarda por arquivo-marcador.",
+              "Organização `eimmig` e os 6 projetos (`eimmig_sv-*`) confirmados via API do SonarCloud.",
+              "Secret `SONAR_TOKEN` e variable `SONAR_ORGANIZATION` gravados nos 6 repositórios e reconferidos com `python tools/sonar_setup.py --check`.",
+              "`./init.sh` da raiz e do infra passando (exit 0).",
+              "Os 6 `ci.yml` revalidados com `yaml.safe_load` após cada edição."
+            ]
+          },
+          {
+            "titulo": "Divergência do plano original",
+            "itens": [
+              "`feat-003.8` (SV-9), registrada como subtarefa nova em vez de correção silenciosa: alinhamento das chaves de projeto ao formato `<org>_<repo>` que o SonarCloud gera ao importar do GitHub — sem isso a primeira análise falharia com projeto inexistente."
+            ]
+          },
+          {
+            "titulo": "Defeitos encontrados antes de causar dano",
+            "itens": [
+              "Plan Reviewer, antes de qualquer código: `setup-node` com `cache: npm` falhando sem lockfile.",
+              "Plan Reviewer, antes de qualquer código: scripts `.sh` versionados sem bit de execução — bug latente que já existia no infra.",
+              "Durante a implementação: `init.sh` com o mesmo problema de modo."
+            ]
+          },
+          {
+            "titulo": "Skills e ferramentas",
+            "itens": [
+              "Plan Reviewer e Delivery Reviewer rodados.",
+              "Ferramenta nova instalada nesta feature: `gh` 2.97.0, sem a qual não havia como confirmar a CI."
+            ]
+          }
+        ]
+      },
       "goal": "Deixar os 7 repositórios num estado em que a pipeline de CI roda de verdade — antes de qualquer serviço começar a ser implementado.",
       "scope": [
         "Os 6 repositórios de aplicação hoje têm remote configurado mas nenhum commit: ganham .gitignore/.gitattributes por stack, commit inicial em main e branch develop publicada.",
