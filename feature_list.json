@@ -69,7 +69,7 @@
       ],
       "status": "not-started",
       "plan_review": "",
-      "jira": "",
+      "jira": "SV-261",
       "subtasks": [],
       "evidence": ""
     },
@@ -246,7 +246,7 @@
       ],
       "status": "not-started",
       "plan_review": "",
-      "jira": "",
+      "jira": "SV-262",
       "subtasks": [],
       "evidence": ""
     }

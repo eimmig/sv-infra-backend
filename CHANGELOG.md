@@ -72,3 +72,5 @@ CI (ver `docs/CI-CD.md`).
   tolerância a falha — RNF06 é volume. A base do teste no TCC 1 é a prosa da seção 4.1 (p. 30) e
   do capítulo de arquitetura, que especificam *retries* + DLQ sem atribuir ID ao requisito.
   Nenhum RNF novo foi criado. Ver `docs/REQUIREMENTS.md` e `docs/DECISIONS-LOG.md` no vault.
+- [SV-261](https://stakevault.atlassian.net/browse/SV-261) - Teste de resiliencia cross-service: DLQ e retry (fecha epic-007 da raiz)
+- [SV-262](https://stakevault.atlassian.net/browse/SV-262) - Migração para Kubernetes (fecha epic-010 da raiz) — alvo real de implantação do TCC 1
