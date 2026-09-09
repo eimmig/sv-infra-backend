@@ -74,7 +74,7 @@
         {
           "id": "feat-002.1",
           "name": "Ambiente: infra + 4 servicos Java no ar com segredos sincronizados",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-263",
           "detail": "Sem ADMIN_API_KEY e PASETO_LOCAL_KEY identicos entre os servicos certos, nada mais no roteiro funciona.",
           "checklist": [
