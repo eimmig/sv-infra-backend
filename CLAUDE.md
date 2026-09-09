@@ -1,11 +1,13 @@
 # CLAUDE.md — infra
 
 Docker Compose local para os serviços de infraestrutura compartilhada (PostgreSQL, RabbitMQ,
-Redis, n8n) e o teste de resiliência cross-service (DLQ/retry). Parte do harness multinível do
-projeto — leia `../CLAUDE.md` (raiz) para invariantes cross-service antes deste arquivo, e
-`../docs/services/infra.md` para o desenho completo (componentes, diagramas de resiliência).
-**Este é seu próprio repositório Git**, não um monorepo — ver `../docs/DECISIONS-LOG.md`
-"Topologia".
+Redis, n8n), o teste de resiliência cross-service (DLQ/retry) e — alvo real de implantação
+especificado no TCC 1, não apenas ambiente de dev — os manifests/Helm charts de Kubernetes
+(ver `../docs/DECISIONS-LOG.md` 2026-09-08 "Correção: Kubernetes não é fora de escopo"). Parte
+do harness multinível do projeto — leia `../CLAUDE.md` (raiz) para invariantes cross-service
+antes deste arquivo, e `../docs/services/infra.md` para o desenho completo (componentes,
+diagramas de resiliência). **Este é seu próprio repositório Git**, não um monorepo — ver
+`../docs/DECISIONS-LOG.md` "Topologia".
 
 ## Por que este harness existe
 
@@ -59,6 +61,15 @@ lugar real para código/config versionados, seguindo o mesmo padrão dos outros 
   no `plan_review` daquela feature: o commit inicial de um repositório vazio **não** passa por
   `feature/`→PR (não existe branch base), então vai direto em `main`; a branch da story vive aqui,
   levando só as mudanças de harness.
+- **`feat-004` (migração Kubernetes)**: `not-started`, registrada em 2026-09-08 pra fechar a
+  lacuna descrita em `../docs/DECISIONS-LOG.md` (mesma data) — o `docker-compose.yml` de
+  `feat-001` é ambiente de dev, não substitui a especificação de implantação do TCC 1 (Figura 5).
+  Escopo esperado: manifests (ou Helm charts) convertendo cada serviço do compose atual
+  (Postgres×3, RabbitMQ + topologia de `rabbitmq/definitions.json`, Redis, n8n) mais
+  Deployment/Service/Ingress para os 4 serviços Java (`api-gateway` incluso) — como esses
+  serviços não têm `Dockerfile` próprio ainda, essa feature também precisa decidir/criar as
+  imagens de build. Rodar `Plan Reviewer` antes de codificar, como qualquer outra feature —
+  nenhum trabalho começou ainda.
 - **Sem arquitetura hexagonal, sem i18n**: este harness não tem código de aplicação nem texto
   voltado ao usuário final — as convenções de `../docs/CONVENTIONS.md` sobre estrutura
   `domain/`/`application/`/`adapter/` e internacionalização não se aplicam aqui.

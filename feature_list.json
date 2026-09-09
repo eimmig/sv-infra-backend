@@ -236,6 +236,19 @@
         "SonarCloud: organização, 6 projetos (chave = nome do repositório), token e org key configurados em cada repositório do GitHub.",
         "infra/ não entra no SonarCloud — não tem código de aplicação para analisar."
       ]
+    },
+    {
+      "id": "feat-004",
+      "name": "Migração para Kubernetes (fecha epic-010 da raiz) — alvo real de implantação do TCC 1",
+      "description": "docs/ARCHITECTURE.md e a nota de diagramas diziam que Kubernetes era 'meta citada no TCC mas fora do escopo do ambiente de desenvolvimento' - corrigido em 2026-09-08 (ver docs/DECISIONS-LOG.md), a pedido do usuario: o TCC 1 especifica Kubernetes como orquestracao de producao (Figura 5, secao 4.3.1), nao uma alternativa descartavel. docker-compose.yml (feat-001) continua sendo o ambiente de desenvolvimento local - nao e substituido, e sim complementado. Escopo esperado: manifests Kubernetes (ou Helm charts) convertendo os componentes ja existentes no compose (3x PostgreSQL, RabbitMQ com a topologia versionada em rabbitmq/definitions.json, Redis, n8n) e adicionando Deployment/Service/Ingress para os 4 servicos Java (auth-service, bets-service, stats-service, api-gateway) que hoje nao tem Dockerfile proprio - construir essas imagens tambem entra no escopo. Definicao de pronto: cluster local (k3s ou equivalente) sobe via 'kubectl apply' ou 'helm install' com todos os pods healthy, equivalente funcional ao 'docker compose up' de feat-001.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "plan_review": "",
+      "jira": "",
+      "subtasks": [],
+      "evidence": ""
     }
   ]
 }
