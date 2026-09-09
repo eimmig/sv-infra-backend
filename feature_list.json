@@ -67,10 +67,82 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "plan_review": "",
+      "status": "in-progress",
+      "plan_review": "2026-09-09, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o roteiro de execucao antes de qualquer acao. Veredito: READY WITH CONCERNS. Achados corrigidos no roteiro: (MAJOR) ADMIN_API_KEY precisa ser o mesmo valor nos .env de auth-service/bets-service/stats-service e PASETO_LOCAL_KEY precisa ser o mesmo em auth-service/api-gateway (reaproveitar o valor ja validado em teste, 93f681c1...4774bc7, em vez de gerar um novo) - sem isso os 3 POST /api/v1/admin/tenants ou a validacao do token no gateway falham; (MAJOR) toda chamada pos-login (catalogos, betting-house, criar/liquidar aposta) precisa ir por api-gateway:8080 com Bearer token, nunca direto nas portas 8081-8083 - so os 3 POST /admin/tenants (provisionamento) e as consultas a Management API do RabbitMQ ficam fora do gateway, porque BetsController exige X-User-Id (so o gateway injeta a partir do token); (MINOR) cenario DLQ (derrubar postgres-stats) deve fazer poll da Management API ate a mensagem estabilizar na fila/cair na DLQ, nao sleep fixo (HikariCP nao falha instantaneo). Evidencia coletada antes do plano: rotas confirmadas nos 4 servicos (AdminTenantController x3, BetsController com PATCH /{id}/status para liquidacao, catalogos em bets-service), portas fixas (auth 8081, bets 8082, stats 8083, gateway 8080 default), mvnw presente nos 4, root init.sh e infra/init.sh verdes nesta sessao. Rodada de desafio independente executada como passe proprio, sem subagente - independencia reduzida, declarada.",
       "jira": "SV-261",
-      "subtasks": [],
+      "subtasks": [
+        {
+          "id": "feat-002.1",
+          "name": "Ambiente: infra + 4 servicos Java no ar com segredos sincronizados",
+          "status": "not-started",
+          "jira": "SV-263",
+          "detail": "Sem ADMIN_API_KEY e PASETO_LOCAL_KEY identicos entre os servicos certos, nada mais no roteiro funciona.",
+          "checklist": [
+            "infra: cp .env.example .env, docker compose up -d, confirmar 6 containers healthy e rabbitmq-init aplicou a topologia.",
+            "Nos 4 servicos Java: cp .env.example .env; sincronizar ADMIN_API_KEY (mesmo valor) em auth-service/bets-service/stats-service; sincronizar PASETO_LOCAL_KEY (reaproveitar 93f681c1304df4c64f73a0df5c58c7eb097927246ad5b850247a97ef14774bc7, ja validado em teste) em auth-service/api-gateway.",
+            "Subir auth-service (8081), bets-service (8082), stats-service (8083), api-gateway (8080) via mvnw spring-boot:run, um de cada vez, checando o health do Actuator antes do proximo."
+          ],
+          "validation": "GET /actuator/health responde UP nos 4 servicos.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.2",
+          "name": "Provisionamento do tenant de teste + caso de controle",
+          "status": "not-started",
+          "jira": "SV-264",
+          "detail": "Baseline com stats-service saudavel antes de simular qualquer falha.",
+          "checklist": [
+            "3 chamadas admin manuais (POST /api/v1/admin/tenants em auth-service, bets-service, stats-service, X-Admin-Api-Key) provisionando o mesmo tenant nos 3 bancos.",
+            "Login via api-gateway (POST /api/v1/auth/login) para obter token; criar 1 betting house + catalogos minimos (sport/league/market/tipster) via api-gateway com Bearer token.",
+            "Registrar 1 aposta de controle via api-gateway com stats-service no ar; confirmar FACT_BET tem a linha e a fila stats.bet-events volta a 0 mensagens."
+          ],
+          "validation": "Aposta de controle aparece em FACT_BET sem intervencao manual.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.3",
+          "name": "Cenario retry: derrubar/subir stats-service sem perda de mensagem",
+          "status": "not-started",
+          "jira": "SV-265",
+          "detail": "Prova o fluxo descrito em docs/services/infra.md 'Consumo com retry automatico' + reprocessamento apos religar.",
+          "checklist": [
+            "Matar o processo do stats-service. Com ele fora do ar, registrar N apostas (BetCreated) e liquidar 1 (BetSettled, PATCH /{id}/status) via api-gateway.",
+            "Confirmar via RabbitMQ Management API (GET /api/queues/%2f/stats.bet-events) que as mensagens se acumulam (contagem = N+1) em vez de se perderem.",
+            "Subir stats-service de novo; confirmar que drena a fila sozinho (contagem volta a 0) e que FACT_BET tem as N+1 linhas corretas, sem duplicidade (PROCESSED_EVENT)."
+          ],
+          "validation": "Contagem de fila 0 apos religar + linhas de FACT_BET batendo com o que foi publicado durante a queda.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.4",
+          "name": "Cenario DLQ: falha consecutiva de consumo isola sem travar o fluxo",
+          "status": "not-started",
+          "jira": "SV-266",
+          "detail": "Prova o fluxo descrito em docs/services/infra.md 'Dead Letter Queue (DLQ)' - limite x-delivery-limit=3 na fila quorum stats.bet-events.",
+          "checklist": [
+            "Com stats-service no ar, parar postgres-stats (docker compose stop postgres-stats em infra/) para forcar falha deterministica de processamento sem tocar codigo.",
+            "Publicar 1 evento novo (registrar aposta); fazer poll da Management API ate a mensagem estabilizar/cair em stats.bet-events.dlq apos as reentregas.",
+            "Confirmar que o restante do fluxo (outras filas, outros tenants) nao trava enquanto isso - isolamento de falha.",
+            "Restaurar postgres-stats; documentar que a mensagem na DLQ exige reprocessamento manual (sem mecanismo automatico de replay ainda)."
+          ],
+          "validation": "Mensagem visivel em stats.bet-events.dlq via Management API; demais operacoes continuam respondendo durante a falha.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.5",
+          "name": "Evidencia, documentacao e fechamento",
+          "status": "not-started",
+          "jira": "SV-267",
+          "detail": "Registrar o resultado real (contagens, achados) e deixar o ambiente limpo para a proxima sessao.",
+          "checklist": [
+            "Preencher evidence em infra/feature_list.json (esta feature) e ../feature_list.json (epic-007) com contagens/resultados reais dos 4 cenarios.",
+            "Se a estrategia at-most-once da DLQ mostrar perda real de mensagem em algum passo, reabrir a decisao em ../docs/DECISIONS-LOG.md - caso contrario, so confirmar que continua valida.",
+            "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto no mesmo commit.",
+            "Encerrar os 4 processos Java, docker compose down -v em infra/, ./init.sh (raiz e infra) verdes."
+          ],
+          "owner": "agente"
+        }
+      ],
       "evidence": ""
     },
     {

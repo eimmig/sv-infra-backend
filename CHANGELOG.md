@@ -74,3 +74,8 @@ CI (ver `docs/CI-CD.md`).
   Nenhum RNF novo foi criado. Ver `docs/REQUIREMENTS.md` e `docs/DECISIONS-LOG.md` no vault.
 - [SV-261](https://stakevault.atlassian.net/browse/SV-261) - Teste de resiliencia cross-service: DLQ e retry (fecha epic-007 da raiz)
 - [SV-262](https://stakevault.atlassian.net/browse/SV-262) - Migração para Kubernetes (fecha epic-010 da raiz) — alvo real de implantação do TCC 1
+- [SV-263](https://stakevault.atlassian.net/browse/SV-263) - Ambiente: infra + 4 servicos Java no ar com segredos sincronizados
+- [SV-264](https://stakevault.atlassian.net/browse/SV-264) - Provisionamento do tenant de teste + caso de controle
+- [SV-265](https://stakevault.atlassian.net/browse/SV-265) - Cenario retry: derrubar/subir stats-service sem perda de mensagem
+- [SV-266](https://stakevault.atlassian.net/browse/SV-266) - Cenario DLQ: falha consecutiva de consumo isola sem travar o fluxo
+- [SV-267](https://stakevault.atlassian.net/browse/SV-267) - Evidencia, documentacao e fechamento
