@@ -1,0 +1,52 @@
+# Recebe o webhook do bot Telegram e aciona telegram-integration - sem depends_on/service
+# alvo aqui, mesma independencia de infra/docker-compose.yml (n8n nunca fala com o broker).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: n8n }
+  template:
+    metadata:
+      labels: { app: n8n }
+    spec:
+      containers:
+        - name: n8n
+          image: docker.n8n.io/n8nio/n8n:1.100.0
+          ports: [{ containerPort: 5678 }]
+          env:
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom: { secretKeyRef: { name: stakevault-secrets, key: N8N_ENCRYPTION_KEY } }
+            - { name: N8N_PORT, value: "5678" }
+            - { name: GENERIC_TIMEZONE, value: America/Sao_Paulo }
+          volumeMounts:
+            - { name: data, mountPath: /home/node/.n8n }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 5678 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: 5678 }
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: n8n-data }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 512Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n
+spec:
+  selector: { app: n8n }
+  ports: [{ port: 5678, targetPort: 5678 }]

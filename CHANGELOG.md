@@ -79,3 +79,7 @@ CI (ver `docs/CI-CD.md`).
 - [SV-265](https://stakevault.atlassian.net/browse/SV-265) - Cenario retry: derrubar/subir stats-service sem perda de mensagem
 - [SV-266](https://stakevault.atlassian.net/browse/SV-266) - Cenario DLQ: falha consecutiva de consumo isola sem travar o fluxo
 - [SV-267](https://stakevault.atlassian.net/browse/SV-267) - Evidencia, documentacao e fechamento
+- [SV-286](https://stakevault.atlassian.net/browse/SV-286) - Dockerfiles dos 5 servicos de aplicacao (cross-repo, feature propria em cada um)
+- [SV-287](https://stakevault.atlassian.net/browse/SV-287) - Cluster kind + ingress-nginx + manifests de infra (Postgres x3, RabbitMQ+Job, Redis, n8n)
+- [SV-288](https://stakevault.atlassian.net/browse/SV-288) - Manifests dos 5 servicos de aplicacao + Ingress + verificacao end-to-end real
+- [SV-289](https://stakevault.atlassian.net/browse/SV-289) - Documentacao (CLAUDE.md, ARCHITECTURE.md, docs/services/infra.md) + CHANGELOG e verificacao final
