@@ -67,7 +67,7 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "in-progress",
+      "status": "done",
       "plan_review": "2026-09-09, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o roteiro de execucao antes de qualquer acao. Veredito: READY WITH CONCERNS. Achados corrigidos no roteiro: (MAJOR) ADMIN_API_KEY precisa ser o mesmo valor nos .env de auth-service/bets-service/stats-service e PASETO_LOCAL_KEY precisa ser o mesmo em auth-service/api-gateway (reaproveitar o valor ja validado em teste, 93f681c1...4774bc7, em vez de gerar um novo) - sem isso os 3 POST /api/v1/admin/tenants ou a validacao do token no gateway falham; (MAJOR) toda chamada pos-login (catalogos, betting-house, criar/liquidar aposta) precisa ir por api-gateway:8080 com Bearer token, nunca direto nas portas 8081-8083 - so os 3 POST /admin/tenants (provisionamento) e as consultas a Management API do RabbitMQ ficam fora do gateway, porque BetsController exige X-User-Id (so o gateway injeta a partir do token); (MINOR) cenario DLQ (derrubar postgres-stats) deve fazer poll da Management API ate a mensagem estabilizar na fila/cair na DLQ, nao sleep fixo (HikariCP nao falha instantaneo). Evidencia coletada antes do plano: rotas confirmadas nos 4 servicos (AdminTenantController x3, BetsController com PATCH /{id}/status para liquidacao, catalogos em bets-service), portas fixas (auth 8081, bets 8082, stats 8083, gateway 8080 default), mvnw presente nos 4, root init.sh e infra/init.sh verdes nesta sessao. Rodada de desafio independente executada como passe proprio, sem subagente - independencia reduzida, declarada.",
       "jira": "SV-261",
       "subtasks": [
