@@ -1,0 +1,22 @@
+# Ponto unico de entrada HTTP publico do cluster (diagrama de implantacao do TCC1: "Load
+# Balancer (Abstracao: Kubernetes Ingress/Service)" na frente do "API Gateway"). So
+# api-gateway e exposto aqui - os demais servicos so tem Service ClusterIP, alcancaveis
+# apenas de dentro do cluster.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stakevault-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080

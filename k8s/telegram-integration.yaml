@@ -1,0 +1,48 @@
+# Imagem local (stakevault/telegram-integration:local,
+# services/telegram-integration/Dockerfile, feat-007 daquele repositorio) - ver
+# infra/CLAUDE.md secao Kubernetes. ClusterIP-only, sem Ingress: so n8n (mesmo cluster) fala
+# com este servico - residual de auth/rate-limit em POST /bets/capture, /telegram/link,
+# /telegram-accounts (aceito em services/telegram-integration/n8n/README.md) continua valendo
+# porque a internet nunca alcanca este pod diretamente.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-integration
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: telegram-integration }
+  template:
+    metadata:
+      labels: { app: telegram-integration }
+    spec:
+      containers:
+        - name: telegram-integration
+          image: stakevault/telegram-integration:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: REDIS_HOST, value: redis }
+            - { name: REDIS_PORT, value: "6379" }
+            - name: REDIS_PASSWORD
+              valueFrom: { secretKeyRef: { name: stakevault-secrets, key: REDIS_PASSWORD } }
+            - { name: AUTH_SERVICE_URL, value: "http://auth-service:8081" }
+            - { name: API_GATEWAY_URL, value: "http://api-gateway:8080" }
+            - name: SERVICE_KEY
+              valueFrom: { secretKeyRef: { name: stakevault-secrets, key: SERVICE_KEY } }
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8000 }
+            initialDelaySeconds: 15
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegram-integration
+spec:
+  selector: { app: telegram-integration }
+  ports: [{ port: 8000, targetPort: 8000 }]
