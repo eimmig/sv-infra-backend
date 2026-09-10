@@ -2,8 +2,9 @@
 
 ## Estado Atual (Current State)
 
-**Última atualização:** 2026-08-03
-**Feature ativa:** nenhuma (`feat-001` concluída; `feat-002` bloqueada)
+**Última atualização:** 2026-09-10
+**Feature ativa:** nenhuma (`feat-001`/`feat-002`/`feat-003` `done`; `feat-004` `not-started`,
+sem `plan_review`)
 
 ## Status
 
@@ -87,3 +88,41 @@ leia `../docs/services/infra.md` seção "Resiliência" (diagramas de retry e DL
 
 Para subir a infra localmente: `cp .env.example .env` e seguir o bloco "Verificação" do
 `CLAUDE.md` deste repositório.
+
+## `feat-002` fechada — teste de resiliência cross-service, fecha `epic-007` da raiz (2026-09-10)
+
+Sessão retomou `epic-007` (já `in-progress` desde a sessão anterior, que tinha deixado
+`feat-002.1..3` prontas mas nunca empurradas pro GitHub). Executado nesta sessão:
+
+- **`feat-002.4` (cenário DLQ)**: infra + 4 serviços Java subidos localmente (gotcha documentado
+  em `docs/OBSERVABILITY-AND-CONFIG.md`: `mvnw spring-boot:run` exige `export` manual das
+  variáveis do `.env` + `SPRING_PROFILES_ACTIVE=dev`, não lê `.env` sozinho). Tenant de teste novo
+  (`feat002dlq`, criado por não ter a senha do tenant anterior `feat002test` registrada em nenhum
+  artefato). `postgres-stats` parado, 1 evento publicado, poll na Management API do RabbitMQ até a
+  mensagem cair em `stats.bet-events.dlq` (~105s, 3 tentativas de retry de aplicação limitadas
+  pelo `connection-timeout` de 30s do HikariCP). Registro síncrono da aposta não bloqueou.
+- **2 achados reais corrigidos ao longo do caminho, ambos fora deste repositório**:
+  1. RabbitMQ 4.3+ deixou de contar `nack(requeue=true)` para `x-delivery-limit` — descoberto
+     numa tentativa anterior desta mesma feature (sessão passada), corrigido em
+     `services/stats-service feat-010` (retry de aplicação), fechado nesta sessão.
+  2. `api-gateway` nunca roteava `/api/v1/tipsters/**` — decisão deliberada de `feat-007` daquele
+     serviço que ficou obsoleta quando `apps/web feat-008` (catálogos) ganhou a aba de tipsters
+     sem que ninguém revisitasse o roteamento. Encontrado montando o catálogo de teste (criar um
+     tipster via Gateway devolvia 404). Corrigido em `services/api-gateway feat-008`.
+- **`feat-002.5` (evidência e fechamento)**: Delivery Reviewer (passe próprio) sobre o texto de
+  evidência antes de commitar — encontrou e corrigiu 2 imprecisões (uma alegação de "health 200 o
+  tempo todo" que na verdade só foi verificada em 2 pontos, e atribuição errada de qual subtask
+  provisionou o tenant original). Estratégia `at-most-once` da DLQ reconfirmada válida (nenhum dos
+  2 cenários mostrou perda de mensagem).
+- **Achado de processo, corrigido**: `feat-002.1..3` tinham sido mescladas localmente (git merge
+  direto) sem nunca passar por PR/CI real do GitHub, desviando do fluxo de 2 gates deste
+  `CLAUDE.md`. Corrigido nesta sessão: todas as branches empurradas pro GitHub e o PR
+  `feature/SV-261 -> develop` (o gate mais pesado) passou pela CI real antes do merge — desvio
+  documentado na descrição do PR e na evidência da feature, não escondido.
+- Branches `feature/SV-261` e `subtask/SV-263..267` deletadas (local e remoto) após o merge. Numa
+  limpeza mais ampla pedida pelo usuário, também deletadas dezenas de branches antigas já
+  mescladas de sessões anteriores neste e nos outros repositórios tocados (`api-gateway`,
+  `auth-service`, `bets-service`, `stats-service`, `telegram-integration`).
+
+Ambiente encerrado: 4 processos Java parados, `docker compose down -v`, `./init.sh` da raiz e
+deste repositório verdes.
