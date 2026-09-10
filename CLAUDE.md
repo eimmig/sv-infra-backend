@@ -61,15 +61,48 @@ lugar real para código/config versionados, seguindo o mesmo padrão dos outros 
   no `plan_review` daquela feature: o commit inicial de um repositório vazio **não** passa por
   `feature/`→PR (não existe branch base), então vai direto em `main`; a branch da story vive aqui,
   levando só as mudanças de harness.
-- **`feat-004` (migração Kubernetes)**: `not-started`, registrada em 2026-09-08 pra fechar a
-  lacuna descrita em `../docs/DECISIONS-LOG.md` (mesma data) — o `docker-compose.yml` de
-  `feat-001` é ambiente de dev, não substitui a especificação de implantação do TCC 1 (Figura 5).
-  Escopo esperado: manifests (ou Helm charts) convertendo cada serviço do compose atual
-  (Postgres×3, RabbitMQ + topologia de `rabbitmq/definitions.json`, Redis, n8n) mais
-  Deployment/Service/Ingress para os 4 serviços Java (`api-gateway` incluso) — como esses
-  serviços não têm `Dockerfile` próprio ainda, essa feature também precisa decidir/criar as
-  imagens de build. Rodar `Plan Reviewer` antes de codificar, como qualquer outra feature —
-  nenhum trabalho começou ainda.
+- **`feat-004` (migração Kubernetes)**: **`done`** (2026-09-10) — fecha a lacuna descrita em
+  `../docs/DECISIONS-LOG.md` (2026-09-08). Manifests YAML puros (decisão do usuário via
+  `AskUserQuestion` — sem Helm, ~10 componentes não justificam templating) em `k8s/`, um
+  cluster local por `kind` (não Docker Desktop Kubernetes — não estava habilitado nesta
+  máquina e exige toggle manual na GUI; `kind`/`helm` instalados via `winget` só por
+  precaução, `helm` acabou não sendo usado). Escopo final maior que o originalmente descrito
+  aqui: **`telegram-integration` entrou no escopo** (decisão do usuário) mesmo nunca tendo
+  passado por `docker-compose.yml` antes — `Dockerfile` de cada um dos 5 serviços de aplicação
+  (4 Java + Python) foi feito como feature própria em cada repositório de serviço (mesmo
+  precedente de "porta HTTP fixa"), não neste harness — ver `auth-service feat-011`,
+  `bets-service feat-013`, `stats-service feat-011`, `api-gateway feat-009`,
+  `telegram-integration feat-007`. Este harness só referencia as imagens já construídas
+  (`stakevault/<serviço>:local`).
+  - **Segredos**: `k8s/secret.example.yaml` (versionado, placeholders) → copiar para
+    `k8s/secret.yaml` (nunca versionado, mesmo padrão do `.env`) com os mesmos valores já
+    usados nos `.env` de cada serviço — um único `Secret` (`stakevault-secrets`) referenciado
+    por todos os Deployments, não um por serviço (chaves compartilhadas como
+    `ADMIN_API_KEY`/`PASETO_LOCAL_KEY`/`SERVICE_KEY` ficariam fáceis de divergir em Secrets
+    separados).
+  - **Topologia do RabbitMQ**: o `ConfigMap` `rabbitmq-definitions` **não** é um arquivo YAML
+    versionado em `k8s/` — geraria uma segunda cópia de `rabbitmq/definitions.json` e
+    `rabbitmq/apply-definitions.sh` (os mesmos arquivos que `docker-compose.yml` já usa via
+    bind mount) que divergiria se um mudasse sem o outro. Gerar sempre a partir dos 2 arquivos
+    reais: `kubectl create configmap rabbitmq-definitions --from-file=rabbitmq/definitions.json
+    --from-file=rabbitmq/apply-definitions.sh --dry-run=client -o yaml | kubectl apply -f -`.
+  - **Sem `depends_on`/`condition: service_healthy`** (mecanismo do compose, não existe no
+    Kubernetes): o `Job` `rabbitmq-init` usa um `initContainer` (`busybox`, `nc -z rabbitmq
+    5672` em loop) esperando a porta AMQP responder antes de rodar o mesmo
+    `apply-definitions.sh` de sempre.
+  - **Rotas administrativas continuam fora do Gateway** (mesmo desenho de sempre, ver
+    `../docs/API-CONTRACTS.md`): só `api-gateway` tem `Ingress`; `auth-service`/
+    `bets-service`/`stats-service` são `Service` `ClusterIP`-only, alcançáveis de fora do
+    cluster só via `kubectl port-forward svc/<nome> <porta>:<porta>` — é assim que o operador
+    roda `POST /api/v1/admin/tenants` num cluster real, não um workaround temporário.
+  - **`telegram-integration` fica `ClusterIP`-only, sem `Ingress`**: só `n8n` (mesmo cluster)
+    fala com ele — o residual de auth/rate-limit em `POST /bets/capture`/`/telegram/link`
+    (aceito em `services/telegram-integration/n8n/README.md` enquanto o serviço não era
+    exposto) continua válido, a internet nunca alcança esse pod diretamente.
+  - **Imagens locais, nunca de um registry**: `imagePullPolicy: Never` nos 5 Deployments de
+    aplicação + `kind load docker-image stakevault/<serviço>:local --name stakevault` antes de
+    aplicar — sem registry configurado (fora de escopo de um cluster de demonstração local de
+    TCC).
 - **Sem arquitetura hexagonal, sem i18n**: este harness não tem código de aplicação nem texto
   voltado ao usuário final — as convenções de `../docs/CONVENTIONS.md` sobre estrutura
   `domain/`/`application/`/`adapter/` e internacionalização não se aplicam aqui.
@@ -122,3 +155,51 @@ docker compose down -v     # estado limpo para a proxima sessao
 `rabbitmq-init` é um container one-shot: `docker compose up -d` **não** espera por ele nem falha
 se ele falhar. Sempre confira o log dele — sem a topologia aplicada, o broker sobe vazio e o
 problema só apareceria no `epic-003`.
+
+## Verificação — Kubernetes (`feat-004`)
+
+Pré-requisito: as imagens `stakevault/<serviço>:local` já construídas (`docker build` dentro de
+cada `services/<serviço>/`, ver o `CLAUDE.md` daquele repositório) — este harness só as
+referencia, nunca as constrói.
+
+```bash
+# 1. Cluster local (kind, não Docker Desktop Kubernetes — ver nota acima)
+kind create cluster --name stakevault --config k8s/kind-config.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.14.0/deploy/static/provider/kind/deploy.yaml
+kubectl wait --namespace ingress-nginx --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller --timeout=120s
+
+# 2. Carregar as 5 imagens locais no cluster (nunca de um registry)
+for s in auth-service bets-service stats-service api-gateway telegram-integration; do
+  kind load docker-image stakevault/$s:local --name stakevault
+done
+
+# 3. Segredos + topologia RabbitMQ (a partir dos mesmos arquivos que o compose usa)
+cp k8s/secret.example.yaml k8s/secret.yaml   # preencher com os mesmos valores dos .env locais
+kubectl apply -f k8s/secret.yaml
+kubectl create configmap rabbitmq-definitions \
+  --from-file=rabbitmq/definitions.json --from-file=rabbitmq/apply-definitions.sh \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# 4. Infra, depois aplicação
+kubectl apply -f k8s/postgres.yaml -f k8s/rabbitmq.yaml -f k8s/redis.yaml -f k8s/n8n.yaml
+kubectl apply -f k8s/auth-service.yaml -f k8s/bets-service.yaml -f k8s/stats-service.yaml \
+  -f k8s/api-gateway.yaml -f k8s/telegram-integration.yaml -f k8s/ingress.yaml
+
+# 5. Confirmar
+kubectl get pods                 # todos 1/1 Running (ou Completed, no caso do Job)
+kubectl logs job/rabbitmq-init   # confirma que a topologia foi aplicada
+curl http://localhost:8888/actuator/health   # api-gateway via Ingress (hostPort do kind-config.yaml)
+
+# Rotas admin (POST /api/v1/admin/tenants) ficam fora do Gateway por design — ver nota acima:
+kubectl port-forward svc/auth-service 28081:8081 &
+curl -H "X-Admin-Api-Key: ..." -X POST http://localhost:28081/api/v1/admin/tenants -d '...'
+
+# 6. Estado limpo para a proxima sessao
+kind delete cluster --name stakevault
+```
+
+Verificado de ponta a ponta nesta sessão (não só `kubectl get pods` verde): tenant provisionado
+via `port-forward`, login e registro de aposta via `Ingress` (`http://localhost:8888`),
+`FACT_BET`/`PROCESSED_EVENT` conferidos dentro do pod `postgres-stats` — o mesmo fluxo do
+`docker-compose`, agora rodando no cluster.

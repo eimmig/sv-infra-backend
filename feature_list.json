@@ -312,15 +312,40 @@
     {
       "id": "feat-004",
       "name": "Migração para Kubernetes (fecha epic-010 da raiz) — alvo real de implantação do TCC 1",
-      "description": "docs/ARCHITECTURE.md e a nota de diagramas diziam que Kubernetes era 'meta citada no TCC mas fora do escopo do ambiente de desenvolvimento' - corrigido em 2026-09-08 (ver docs/DECISIONS-LOG.md), a pedido do usuario: o TCC 1 especifica Kubernetes como orquestracao de producao (Figura 5, secao 4.3.1), nao uma alternativa descartavel. docker-compose.yml (feat-001) continua sendo o ambiente de desenvolvimento local - nao e substituido, e sim complementado. Escopo esperado: manifests Kubernetes (ou Helm charts) convertendo os componentes ja existentes no compose (3x PostgreSQL, RabbitMQ com a topologia versionada em rabbitmq/definitions.json, Redis, n8n) e adicionando Deployment/Service/Ingress para os 4 servicos Java (auth-service, bets-service, stats-service, api-gateway) que hoje nao tem Dockerfile proprio - construir essas imagens tambem entra no escopo. Definicao de pronto: cluster local (k3s ou equivalente) sobe via 'kubectl apply' ou 'helm install' com todos os pods healthy, equivalente funcional ao 'docker compose up' de feat-001.",
+      "description": "docs/ARCHITECTURE.md e a nota de diagramas diziam que Kubernetes era 'meta citada no TCC mas fora do escopo do ambiente de desenvolvimento' - corrigido em 2026-09-08 (ver docs/DECISIONS-LOG.md), a pedido do usuario: o TCC 1 especifica Kubernetes como orquestracao de producao (Figura 5, secao 4.3.1), nao uma alternativa descartavel. docker-compose.yml (feat-001) continua sendo o ambiente de desenvolvimento local - nao e substituido, e sim complementado. Escopo final maior que o originalmente descrito aqui (decisoes do usuario via AskUserQuestion no inicio desta feature): manifests YAML puros (nao Helm) em k8s/, convertendo os componentes ja existentes no compose (3x PostgreSQL, RabbitMQ com a topologia versionada em rabbitmq/definitions.json, Redis, n8n) e adicionando Deployment/Service para os 4 servicos Java MAIS telegram-integration (Python, nunca tinha passado por docker-compose antes) + Ingress so para api-gateway. Dockerfile de cada um dos 5 servicos de aplicacao foi feito como feature propria em cada repositorio de servico, nao aqui (mesmo precedente de 'porta HTTP fixa') - ver auth-service feat-011, bets-service feat-013, stats-service feat-011, api-gateway feat-009, telegram-integration feat-007.",
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "plan_review": "",
+      "status": "done",
+      "plan_review": "2026-09-10. Nao um plan review formal de skill dedicada - 3 decisoes de escopo genuinamente em aberto (Dockerfile centralizado em infra vs por repositorio de servico; manifests YAML vs Helm; incluir telegram-integration no escopo agora ou deixar de fora) resolvidas com o usuario via AskUserQuestion antes de qualquer codigo, com recomendacao explicita em cada opcao e justificativa. Grounding real feito antes de escrever qualquer manifest: Docker Desktop Kubernetes nao estava habilitado nesta maquina (exige toggle na GUI, nao scriptavel) - kind + helm instalados via winget como alternativa 100% CLI (helm acabou nao sendo necessario, YAML puro venceu); imagens eclipse-temurin:25-jdk-alpine/25-jre-alpine confirmadas existentes via docker manifest inspect antes de escrever os Dockerfiles; portas/env vars de cada servico confirmadas lendo application.yml/.env.example reais (nao assumidas); pyproject.toml/ocr.py de telegram-integration lidos para descobrir a dependencia de tesseract-ocr-por (idioma 'por+eng') que so apareceria em runtime, nao em build. Rodada de desafio independente executada como passe proprio (self-review da propria evidence antes de commitar, ver 'Delivery Reviewer' abaixo) - independencia reduzida, declarada.",
       "jira": "SV-262",
-      "subtasks": [],
-      "evidence": ""
+      "subtasks": [
+        {
+          "id": "feat-004.1",
+          "name": "Dockerfiles dos 5 servicos de aplicacao (cross-repo, feature propria em cada um)",
+          "status": "done",
+          "jira": "SV-286"
+        },
+        {
+          "id": "feat-004.2",
+          "name": "Cluster kind + ingress-nginx + manifests de infra (Postgres x3, RabbitMQ+Job, Redis, n8n)",
+          "status": "done",
+          "jira": "SV-287"
+        },
+        {
+          "id": "feat-004.3",
+          "name": "Manifests dos 5 servicos de aplicacao + Ingress + verificacao end-to-end real",
+          "status": "done",
+          "jira": "SV-288"
+        },
+        {
+          "id": "feat-004.4",
+          "name": "Documentacao (CLAUDE.md, ARCHITECTURE.md, docs/services/infra.md) + CHANGELOG e verificacao final",
+          "status": "done",
+          "jira": "SV-289"
+        }
+      ],
+      "evidence": "Fechada em 2026-09-10. Cluster kind local (nao Docker Desktop Kubernetes, desabilitado nesta maquina) com ingress-nginx (manifest oficial da variante kind). 5 imagens locais construidas em cada repositorio de servico (feat-004.1) e carregadas via 'kind load docker-image' - imagePullPolicy: Never, sem registry. Manifests YAML puros em k8s/: postgres.yaml (3x Deployment+PVC+Service), rabbitmq.yaml (Deployment+PVC+Service+Job one-shot com initContainer busybox esperando a porta AMQP, sem depends_on/condition:service_healthy que nao existe no Kubernetes), redis.yaml, n8n.yaml, um arquivo por servico de aplicacao (auth-service/bets-service/stats-service/api-gateway/telegram-integration), ingress.yaml (so api-gateway - unico ponto de entrada publico, mesmo desenho do diagrama de implantacao do TCC1). secret.example.yaml versionado (placeholders) + secret.yaml real (gitignored, populado com os mesmos valores ja usados nos .env de cada servico) num unico Secret compartilhado (stakevault-secrets) - evita divergencia entre servicos que compartilham a mesma chave (ADMIN_API_KEY/PASETO_LOCAL_KEY/SERVICE_KEY). ConfigMap da topologia RabbitMQ gerado via 'kubectl create configmap --from-file' a partir dos MESMOS rabbitmq/definitions.json e apply-definitions.sh que o compose ja usa, nao uma copia YAML separada. Verificacao real, nao so 'kubectl get pods' verde: os 10 workloads (3 Postgres, RabbitMQ, Job de topologia, Redis, n8n, 4 servicos Java, telegram-integration) subiram healthy; job de topologia confirmado via log ('Topologia aplicada'); fluxo de negocio completo executado atraves do cluster - tenant provisionado via 'kubectl port-forward' nos 3 servicos (rotas admin continuam fora do Gateway por design, mesmo em K8s), login e registro de aposta via Ingress real (http://localhost:8888, porta mapeada em k8s/kind-config.yaml), FACT_BET e PROCESSED_EVENT conferidos dentro do pod postgres-stats via 'kubectl exec' - confirma bets-service publicando e stats-service consumindo o evento dentro do cluster; telegram-integration confirmado alcancavel internamente (pod efemero de teste, 200 em /health) mas sem Ingress (ClusterIP-only, residual de auth/rate-limit do servico continua valendo). Achados reais corrigidos antes de fechar: (1) autoreview pegou uma evidencia incorreta escrita no proprio telegram-integration/feat-007 alegando que docker-compose.yml ganharia o servico - corrigido, nenhum dos 4 servicos Java tambem esta no compose, so pecas de infra propriamente ditas, adicionar so o Python quebraria a convencao em vez de seguir 'paridade' com algo que nao existe; (2) cluster kind recriado uma vez, do zero (nada implantado ainda), porque a config inicial nao tinha extraPortMappings/node-label exigidos pelo guia oficial do ingress-nginx para kind. docker-compose.yml (infra/feat-001) NAO foi tocado - continua sendo o ambiente de dev local, agora complementado (nao substituido) pelo Kubernetes. Cluster kind deixado no ar ao final desta sessao para inspecao (`kubectl get pods` mostra os 10 workloads healthy) - removivel a qualquer momento com 'kind delete cluster --name stakevault', nao faz parte do estado do repositorio. ./init.sh da raiz e deste harness verdes (nao dependem de Kubernetes)."
     }
   ]
 }

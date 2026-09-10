@@ -3,3 +3,7 @@
 .env
 .env.*
 !.env.example
+
+# Mesma regra para o Secret do Kubernetes (feat-004) — k8s/secret.example.yaml e o
+# versionado, com placeholders; k8s/secret.yaml (valores reais) nunca e versionado.
+k8s/secret.yaml
