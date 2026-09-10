@@ -116,7 +116,7 @@
         {
           "id": "feat-002.4",
           "name": "Cenario DLQ: falha consecutiva de consumo isola sem travar o fluxo",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-266",
           "detail": "Prova o fluxo descrito em docs/services/infra.md 'Dead Letter Queue (DLQ)' - limite x-delivery-limit=3 na fila quorum stats.bet-events.",
           "checklist": [
