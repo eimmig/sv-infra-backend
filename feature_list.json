@@ -102,7 +102,7 @@
         {
           "id": "feat-002.3",
           "name": "Cenario retry: derrubar/subir stats-service sem perda de mensagem",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-265",
           "detail": "Prova o fluxo descrito em docs/services/infra.md 'Consumo com retry automatico' + reprocessamento apos religar.",
           "checklist": [
