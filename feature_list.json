@@ -88,7 +88,7 @@
         {
           "id": "feat-002.2",
           "name": "Provisionamento do tenant de teste + caso de controle",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-264",
           "detail": "Baseline com stats-service saudavel antes de simular qualquer falha.",
           "checklist": [
