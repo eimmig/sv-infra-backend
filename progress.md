@@ -126,3 +126,56 @@ Sessão retomou `epic-007` (já `in-progress` desde a sessão anterior, que tinh
 
 Ambiente encerrado: 4 processos Java parados, `docker compose down -v`, `./init.sh` da raiz e
 deste repositório verdes.
+
+## `feat-004` fechada — migração para Kubernetes, fecha `epic-010` da raiz (2026-09-10, mesmo dia)
+
+Retomada da sessão anterior (`epic-007` acabara de fechar). Único epic `not-started` restante da
+raiz. 3 decisões de escopo levadas ao usuário via `AskUserQuestion` antes de qualquer código:
+Dockerfile de cada serviço como feature própria naquele repositório (não centralizado aqui,
+mesmo precedente de "porta HTTP fixa") — recomendado e escolhido; manifests YAML puros, não Helm
+— recomendado e escolhido (~10 componentes fixos de um único ambiente não justificam
+templating); `telegram-integration` (Python, nunca tinha passado por `docker-compose.yml`) —
+usuário escolheu incluir agora.
+
+**Ambiente**: Docker Desktop Kubernetes não estava habilitado nesta máquina (exige toggle na
+GUI, não scriptável) — `kind`/`helm` instalados via `winget` (`helm` acabou não sendo usado).
+Cluster `kind` criado com `extraPortMappings`/node label `ingress-ready=true` (guia oficial do
+`ingress-nginx` para `kind`) — precisou ser recriado uma vez porque a config inicial não tinha
+isso e nada tinha sido implantado ainda.
+
+**Dockerfiles**: um por serviço de aplicação (5, incluindo `telegram-integration`), cada um como
+feature própria naquele repositório — `auth-service feat-011`, `bets-service feat-013`,
+`stats-service feat-011`, `api-gateway feat-009`, `telegram-integration feat-007`. Todos
+multi-stage (build separado do runtime), testados de verdade (build real + container real contra
+a infra), não só "parece certo". `telegram-integration` teve uma investigação mais longa: 2
+tentativas reais de satisfazer um achado do SonarCloud (`docker:S8541`, `uv sync` sem
+`--no-build`) trocaram o achado por outro igualmente sem correção viável
+(`docker:S8544`) — documentado como Won't Fix direto no SonarCloud (via API, com justificativa),
+não escondido nem forçado com um workaround frágil.
+
+**Manifests** (`infra/k8s/`): `postgres.yaml` (3x Deployment+PVC+Service), `rabbitmq.yaml`
+(Deployment+PVC+Service + `Job` de topologia com `initContainer` esperando a porta AMQP —
+Kubernetes não tem `depends_on`/`condition: service_healthy`), `redis.yaml`, `n8n.yaml`, um
+arquivo por serviço de aplicação, `ingress.yaml` (só `api-gateway`). `ConfigMap` da topologia
+RabbitMQ gerado via `kubectl create configmap --from-file` a partir dos mesmos
+`rabbitmq/definitions.json`/`apply-definitions.sh` que o compose já usa — não uma cópia YAML
+separada, que divergiria. `secret.example.yaml` (versionado) / `secret.yaml` (gitignored) num
+único `Secret` compartilhado — mesmo padrão do `.env`.
+
+**Verificação real, não só `kubectl get pods` verde**: fluxo de negócio completo através do
+cluster — tenant provisionado via `kubectl port-forward` (rotas admin continuam fora do Gateway
+por design, mesmo em Kubernetes), login e registro de aposta via o `Ingress` real
+(`http://localhost:8888`), `FACT_BET`/`PROCESSED_EVENT` conferidos dentro do pod
+`postgres-stats` via `kubectl exec` — confirma `bets-service` publicando e `stats-service`
+consumindo o evento dentro do cluster. `telegram-integration` confirmado alcançável
+internamente (pod efêmero de teste) mas sem `Ingress` (`ClusterIP`-only).
+
+**Achado de auto-revisão, corrigido antes de commitar**: a evidência de `telegram-integration
+feat-007` alegava que `infra/docker-compose.yml` ganharia o serviço "pra paridade de dev" —
+falso, nenhum dos 4 serviços Java também está no compose (só peças de infra rodam ali, todo
+serviço de aplicação sobe via seu próprio `mvnw`/`uv` no host). Corrigido antes do merge.
+
+`docs/ARCHITECTURE.md` e `docs/services/infra.md` (raiz) atualizados no mesmo commit lógico com o
+desenho completo. `epic-010` (raiz) fechado — **todos os 9 epics do backlog raiz estão `done`**.
+Cluster `kind` deixado no ar ao final desta sessão para inspeção, removível a qualquer momento
+(`kind delete cluster --name stakevault`) — não faz parte do estado do repositório.
