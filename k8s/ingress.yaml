@@ -1,7 +1,11 @@
 # Ponto unico de entrada HTTP publico do cluster (diagrama de implantacao do TCC1: "Load
-# Balancer (Abstracao: Kubernetes Ingress/Service)" na frente do "API Gateway"). So
-# api-gateway e exposto aqui - os demais servicos so tem Service ClusterIP, alcancaveis
-# apenas de dentro do cluster.
+# Balancer (Abstracao: Kubernetes Ingress/Service)" na frente do "API Gateway"). Dividido por
+# path desde que o frontend (web, apps/web/feat-013) ganhou imagem propria: /api vai pro
+# api-gateway (todas as rotas de negocio ja nascem com esse prefixo - /api/v1/..., ver
+# docs/API-CONTRACTS.md - sem rewrite, o path chega intacto no gateway), o resto (/) vai pro
+# web (SPA, fallback de rota tratado dentro do proprio nginx da imagem, nao aqui). Os demais
+# servicos (auth/bets/stats/telegram-integration) so tem Service ClusterIP, alcancaveis
+# apenas de dentro do cluster - nunca expostos aqui.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -13,10 +17,17 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
+          - path: /api
             pathType: Prefix
             backend:
               service:
                 name: api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
                 port:
                   number: 8080
