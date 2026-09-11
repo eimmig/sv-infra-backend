@@ -1,8 +1,7 @@
-# Imagem local (stakevault/auth-service:local, servicos/auth-service/Dockerfile,
-# feat-011 daquele repositorio) - carregada no cluster kind via
-# `kind load docker-image stakevault/auth-service:local --name stakevault`, nunca puxada de
-# um registry (imagePullPolicy: Never). Ver infra/CLAUDE.md secao Kubernetes para o passo a
-# passo completo de build+load+apply.
+# Imagem publicada no GHCR (ghcr.io/eimmig/sv-auth-backend, services/auth-service/feat-014,
+# job build-and-push-image no ci.yml daquele repositorio) - pacote privado, exige
+# imagePullSecrets (ghcr-pull, criado uma vez via `kubectl create secret docker-registry`
+# com um PAT classico escopo read:packages - ver infra/CLAUDE.md secao Kubernetes).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,10 +14,12 @@ spec:
     metadata:
       labels: { app: auth-service }
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: auth-service
-          image: stakevault/auth-service:local
-          imagePullPolicy: Never
+          image: ghcr.io/eimmig/sv-auth-backend:latest
+          imagePullPolicy: Always
           ports: [{ containerPort: 8081 }]
           env:
             - { name: SPRING_PROFILES_ACTIVE, value: dev }

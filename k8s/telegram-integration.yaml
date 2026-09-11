@@ -1,6 +1,8 @@
-# Imagem local (stakevault/telegram-integration:local,
-# services/telegram-integration/Dockerfile, feat-007 daquele repositorio) - ver
-# infra/CLAUDE.md secao Kubernetes. ClusterIP-only, sem Ingress: so n8n (mesmo cluster) fala
+# Imagem publicada no GHCR (ghcr.io/eimmig/sv-telegram-integration-backend,
+# services/telegram-integration/feat-009, job build-and-push-image no ci.yml daquele
+# repositorio) - pacote privado, exige imagePullSecrets (ghcr-pull, criado uma vez via
+# `kubectl create secret docker-registry` com um PAT classico escopo read:packages - ver
+# infra/CLAUDE.md secao Kubernetes). ClusterIP-only, sem Ingress: so n8n (mesmo cluster) fala
 # com este servico - residual de auth/rate-limit em POST /bets/capture, /telegram/link,
 # /telegram-accounts (aceito em services/telegram-integration/n8n/README.md) continua valendo
 # porque a internet nunca alcanca este pod diretamente.
@@ -16,10 +18,12 @@ spec:
     metadata:
       labels: { app: telegram-integration }
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: telegram-integration
-          image: stakevault/telegram-integration:local
-          imagePullPolicy: Never
+          image: ghcr.io/eimmig/sv-telegram-integration-backend:latest
+          imagePullPolicy: Always
           ports: [{ containerPort: 8000 }]
           env:
             - { name: REDIS_HOST, value: redis }

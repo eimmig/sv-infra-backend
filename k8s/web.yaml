@@ -1,0 +1,42 @@
+# Imagem publicada no GHCR (ghcr.io/eimmig/sv-frontend, apps/web/feat-013, job
+# build-and-push-image no ci.yml daquele repositorio) - pacote privado, exige
+# imagePullSecrets (ghcr-pull, criado uma vez via `kubectl create secret docker-registry`
+# com um PAT classico escopo read:packages - ver infra/CLAUDE.md secao Kubernetes). SPA
+# estatica servida por nginx-unprivileged (porta 8080, sem root) - unico servico deste
+# cluster sem variavel de ambiente propria: apiGatewayUrl fica embutido no bundle JS em
+# tempo de build (src/environments/environment.ts), nao lido em runtime pelo pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: web
+          image: ghcr.io/eimmig/sv-frontend:latest
+          imagePullPolicy: Always
+          ports: [{ containerPort: 8080 }]
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector: { app: web }
+  ports: [{ port: 8080, targetPort: 8080 }]

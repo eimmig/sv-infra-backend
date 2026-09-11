@@ -1,5 +1,7 @@
-# Imagem local (stakevault/bets-service:local, services/bets-service/Dockerfile, feat-013
-# daquele repositorio) - ver infra/CLAUDE.md secao Kubernetes.
+# Imagem publicada no GHCR (ghcr.io/eimmig/sv-bets-backend, services/bets-service/feat-015,
+# job build-and-push-image no ci.yml daquele repositorio) - pacote privado, exige
+# imagePullSecrets (ghcr-pull, criado uma vez via `kubectl create secret docker-registry`
+# com um PAT classico escopo read:packages - ver infra/CLAUDE.md secao Kubernetes).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,10 +14,12 @@ spec:
     metadata:
       labels: { app: bets-service }
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: bets-service
-          image: stakevault/bets-service:local
-          imagePullPolicy: Never
+          image: ghcr.io/eimmig/sv-bets-backend:latest
+          imagePullPolicy: Always
           ports: [{ containerPort: 8082 }]
           env:
             - { name: SPRING_PROFILES_ACTIVE, value: dev }

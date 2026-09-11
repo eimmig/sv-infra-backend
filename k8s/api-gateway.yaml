@@ -1,7 +1,9 @@
-# Imagem local (stakevault/api-gateway:local, services/api-gateway/Dockerfile, feat-009
-# daquele repositorio) - ver infra/CLAUDE.md secao Kubernetes. Unico servico exposto via
-# Ingress (ver ingress.yaml) - ponto unico de entrada HTTP publico, mesmo desenho do
-# diagrama de implantacao do TCC1 (API Gateway + Load Balancer/Ingress).
+# Imagem publicada no GHCR (ghcr.io/eimmig/sv-api-gateway, services/api-gateway/feat-011,
+# job build-and-push-image no ci.yml daquele repositorio) - pacote privado, exige
+# imagePullSecrets (ghcr-pull, criado uma vez via `kubectl create secret docker-registry`
+# com um PAT classico escopo read:packages - ver infra/CLAUDE.md secao Kubernetes). Unico
+# servico exposto via Ingress (ver ingress.yaml) - ponto unico de entrada HTTP publico,
+# mesmo desenho do diagrama de implantacao do TCC1 (API Gateway + Load Balancer/Ingress).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,10 +16,12 @@ spec:
     metadata:
       labels: { app: api-gateway }
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: api-gateway
-          image: stakevault/api-gateway:local
-          imagePullPolicy: Never
+          image: ghcr.io/eimmig/sv-api-gateway:latest
+          imagePullPolicy: Always
           ports: [{ containerPort: 8080 }]
           env:
             - { name: SPRING_PROFILES_ACTIVE, value: dev }
