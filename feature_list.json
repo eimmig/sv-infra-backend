@@ -361,7 +361,7 @@
       "dependencies": [
         "feat-004"
       ],
-      "status": "in-progress",
+      "status": "done",
       "plan_review": "2026-09-11 - mudanca mecanica (troca de referencia de imagem + flag de pull + secret, sem logica nova) sobre manifests ja verificados ponta a ponta em feat-004. Unica decisao de design real: como o frontend (web, nunca exposto antes) compartilha o Ingress com api-gateway - resolvido por split de path (/api pro gateway, ja que toda rota de negocio documentada em docs/API-CONTRACTS.md nasce com esse prefixo sem precisar de rewrite; / pro web) em vez de host separado, mais simples pra um dominio ainda em aberto (sessao ainda decidindo Cloudflare Tunnel/DNS). Os 6 YAMLs validados com yaml.safe_load_all antes de aplicar. Risco residual: nenhuma verificacao real contra o k3s de producao ainda foi feita nesta revisao - fica pra validacao da propria subtask.",
       "jira": "SV-351",
       "subtasks": [
@@ -392,11 +392,11 @@
           ],
           "validation": "Fluxo real (cadastro/login/aposta) confirmado via Ingress do k3s de producao.",
           "owner": "agente",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-353"
         }
       ],
-      "evidence": ""
+      "evidence": "Fechada em 2026-09-11. Verificacao real contra o k3s de producao (servidor Debian do usuario, nao kind): os 6 pods de aplicacao Running com 0 restart puxando imagem real do GHCR (ghcr-pull), Ingress dividido por path confirmado via curl real (200 em http://localhost/ - web; 405 em http://localhost/api/v1/auth/login - rota chegou ate auth-service, 405 esperado porque curl -I manda HEAD e o endpoint so aceita POST). 2 achados reais so descobertos no servidor de verdade (nunca no kind): (1) probes exec do RabbitMQ sem timeoutSeconds usavam o default de 1s, curto demais pro rabbitmq-diagnostics - causou 64 restarts em 25h e travou o Job rabbitmq-init pra sempre no initContainer; corrigido com timeoutSeconds: 10 nos 2 probes; (2) ConfigMap rabbitmq-definitions (gerado manual, nunca YAML versionado) precisa ser recriado em todo cluster novo - faltou no primeiro apply do k3s (cluster novo), sintoma so aparecia no kubectl describe pod do Job (MountVolume.SetUp failed), nao no kubectl get pods nem nos logs do RabbitMQ. Ambos documentados em docs/services/infra.md. Delivery Reviewer: PASS. ./init.sh do harness e da raiz verdes."
     }
   ]
 }
