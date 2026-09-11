@@ -83,3 +83,6 @@ CI (ver `docs/CI-CD.md`).
 - [SV-287](https://stakevault.atlassian.net/browse/SV-287) - Cluster kind + ingress-nginx + manifests de infra (Postgres x3, RabbitMQ+Job, Redis, n8n)
 - [SV-288](https://stakevault.atlassian.net/browse/SV-288) - Manifests dos 5 servicos de aplicacao + Ingress + verificacao end-to-end real
 - [SV-289](https://stakevault.atlassian.net/browse/SV-289) - Documentacao (CLAUDE.md, ARCHITECTURE.md, docs/services/infra.md) + CHANGELOG e verificacao final
+- [SV-351](https://stakevault.atlassian.net/browse/SV-351) - Migrar manifests do kind local pro k3s de producao (Debian) + GHCR
+- [SV-352](https://stakevault.atlassian.net/browse/SV-352) - Atualizar 6 manifests + criar web.yaml + dividir ingress.yaml por path
+- [SV-353](https://stakevault.atlassian.net/browse/SV-353) - CHANGELOG e verificacao final
