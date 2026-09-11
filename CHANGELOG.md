@@ -86,3 +86,5 @@ CI (ver `docs/CI-CD.md`).
 - [SV-351](https://stakevault.atlassian.net/browse/SV-351) - Migrar manifests do kind local pro k3s de producao (Debian) + GHCR
 - [SV-352](https://stakevault.atlassian.net/browse/SV-352) - Atualizar 6 manifests + criar web.yaml + dividir ingress.yaml por path
 - [SV-353](https://stakevault.atlassian.net/browse/SV-353) - CHANGELOG e verificacao final
+- [SV-390](https://stakevault.atlassian.net/browse/SV-390) - auth-service: env vars BETS_SERVICE_URL/STATS_SERVICE_URL (orquestracao de tenant)
+- [SV-391](https://stakevault.atlassian.net/browse/SV-391) - Adicionar env vars + aplicar no cluster real + CHANGELOG

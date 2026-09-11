@@ -397,6 +397,40 @@
         }
       ],
       "evidence": "Fechada em 2026-09-11. Verificacao real contra o k3s de producao (servidor Debian do usuario, nao kind): os 6 pods de aplicacao Running com 0 restart puxando imagem real do GHCR (ghcr-pull), Ingress dividido por path confirmado via curl real (200 em http://localhost/ - web; 405 em http://localhost/api/v1/auth/login - rota chegou ate auth-service, 405 esperado porque curl -I manda HEAD e o endpoint so aceita POST). 2 achados reais so descobertos no servidor de verdade (nunca no kind): (1) probes exec do RabbitMQ sem timeoutSeconds usavam o default de 1s, curto demais pro rabbitmq-diagnostics - causou 64 restarts em 25h e travou o Job rabbitmq-init pra sempre no initContainer; corrigido com timeoutSeconds: 10 nos 2 probes; (2) ConfigMap rabbitmq-definitions (gerado manual, nunca YAML versionado) precisa ser recriado em todo cluster novo - faltou no primeiro apply do k3s (cluster novo), sintoma so aparecia no kubectl describe pod do Job (MountVolume.SetUp failed), nao no kubectl get pods nem nos logs do RabbitMQ. Ambos documentados em docs/services/infra.md. Delivery Reviewer: PASS. ./init.sh do harness e da raiz verdes."
+    },
+    {
+      "id": "feat-006",
+      "name": "auth-service: env vars BETS_SERVICE_URL/STATS_SERVICE_URL (orquestracao de tenant)",
+      "goal": "Dar ao pod auth-service os enderecos internos de bets-service e stats-service para que a orquestracao de provisionamento de tenant (auth-service feat-015, reverte 3-chamadas-manuais pra 1 chamada em codigo) consiga de fato chamar os outros 2 servicos dentro do cluster.",
+      "scope": [
+        "k8s/auth-service.yaml ganha 2 env vars novas apontando pro Service ClusterIP interno de bets-service (porta 8082) e stats-service (porta 8083) - nao expõe nada novo externamente, so DNS interno do cluster"
+      ],
+      "description": "auth-service feat-015 (repositorio proprio) passou a chamar bets-service e stats-service via RestClient lendo tenant-provisioning.bets-service-url/stats-service-url de @Value, com binding de producao vindo de BETS_SERVICE_URL/STATS_SERVICE_URL (ver application.yml daquele servico). Sem essa env var no manifest do k3s, o pod sobe com a URL vazia/erro de binding - o deploy em si nao acompanhava mudanca de infra, so de codigo.",
+      "dependencies": [
+        "feat-005"
+      ],
+      "status": "in-progress",
+      "plan_review": "2026-09-11 - mudanca mecanica de 1 manifest (2 linhas de env var apontando pro Service interno ja existente, ClusterIP padrao do k3s por nome), sem novo recurso, sem mudanca de rede/porta/imagem. Nao ha decisao de design real: o nome do Service e a porta ja sao publicos (bets-service:8082, stats-service:8083, definidos em k8s/bets-service.yaml e k8s/stats-service.yaml, ambos ja aplicados no cluster). Risco residual: exige rollout restart do pod auth-service no servidor real para pegar a env var nova junto da imagem nova (auth-service feat-015) - verificacao fica pra subtask unica.",
+      "jira": "SV-390",
+      "subtasks": [
+        {
+          "id": "feat-006.1",
+          "name": "Adicionar env vars + aplicar no cluster real + CHANGELOG",
+          "detail": "Unica subtask - mudanca pequena o suficiente pra nao justificar quebra em mais passos.",
+          "checklist": [
+            "k8s/auth-service.yaml: BETS_SERVICE_URL=http://bets-service:8082, STATS_SERVICE_URL=http://stats-service:8083",
+            "kubectl apply -f k8s/auth-service.yaml + kubectl rollout restart deployment auth-service no servidor Debian real",
+            "1 chamada admin real (POST /api/v1/admin/tenants so no auth-service) confirma downstreamProvisioningFailures vazio",
+            "Entrada em CHANGELOG.md (Unreleased)",
+            "Vault (docs/) revisado: alguma descoberta desta feature sem nota correspondente? Se sim, atualizar no mesmo commit"
+          ],
+          "validation": "curl real contra o Ingress do k3s de producao: 1 chamada admin cria tenant nos 3 servicos, downstreamProvisioningFailures:[] na resposta.",
+          "owner": "agente",
+          "status": "in-progress",
+          "jira": "SV-391"
+        }
+      ],
+      "evidence": ""
     }
   ]
 }
