@@ -31,10 +31,12 @@ spec:
             exec: { command: ["rabbitmq-diagnostics", "-q", "check_running", "--quiet"] }
             initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 10
           livenessProbe:
             exec: { command: ["rabbitmq-diagnostics", "-q", "check_running", "--quiet"] }
             initialDelaySeconds: 30
             periodSeconds: 15
+            timeoutSeconds: 10
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: rabbitmq-data }
