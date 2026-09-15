@@ -459,7 +459,7 @@
         {
           "id": "feat-007.3",
           "name": "Aplicar RBAC + gerar token + distribuir KUBE_CONFIG nos 6 repos (exige kubectl real, operador)",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-421"
         },
         {
