@@ -431,6 +431,20 @@
         }
       ],
       "evidence": "Fechada em 2026-09-15. k8s/auth-service.yaml ja tinha as 2 env vars commitadas antes da sessao (b97dc3e); esta sessao trouxe a verificacao real que faltava contra o k3s de producao (servidor Debian, nao kind): SSH no servidor (~/infra em develop, 3 commits atras - git pull --ff-only trouxe b97dc3e/944c761), kubectl apply -f k8s/auth-service.yaml (deployment configured) + kubectl rollout restart deployment auth-service, rollout confirmado com kubectl rollout status (successfully rolled out) e kubectl exec no pod novo confirmando BETS_SERVICE_URL=http://bets-service:8082/STATS_SERVICE_URL=http://stats-service:8083 no ambiente. Verificacao de negocio: kubectl port-forward svc/auth-service 18081:8081 + 1 POST /api/v1/admin/tenants real (tenant novo feat006-verify, chave lida do Secret stakevault-secrets so no shell remoto, nunca impressa) respondeu downstreamProvisioningFailures: [] - confirma auth-service orquestrando bets-service e stats-service com sucesso dentro do cluster real. Mesma evidencia serve de fechamento para auth-service feat-015 (Review la, aguardando so essa prova de producao). ./init.sh deste harness e da raiz verdes."
+    },
+    {
+      "id": "feat-007",
+      "name": "ServiceAccount de CI com RBAC restrito + kubeconfig para deploy automatico (fecha epic-028 da raiz)",
+      "description": "Decisao do usuario em 2026-09-15 (epic-028 da raiz): em vez de ArgoCD/Flux (GitOps completo, descartado por desproporcional a um cluster de ambiente unico), CD automatico via CI simples - kubectl rollout restart depois que a imagem nova ja esta no GHCR (job build-and-push-image, epic-010). Esta feature cobre so a credencial/RBAC do lado do servidor: criar um ServiceAccount dedicado (ex. ci-deployer) com Role/RoleBinding restritos a get/patch/update em Deployments dos 6 servicos de aplicacao (nunca cluster-admin nem acesso a Secrets/outros namespaces), gerar o kubeconfig correspondente (token de longa duracao do ServiceAccount, nao o kubeconfig admin do operador) e documentar o processo de distribuir esse kubeconfig como secret KUBE_CONFIG nos 6 repositorios de aplicacao (cada repositorio precisa do proprio secret - GitHub nao compartilha secrets entre repositorios, mesmo padrao ja usado pra SONAR_TOKEN/SONAR_ORGANIZATION em docs/CI-CD.md 'Setup pendente'). Nao inclui o job de deploy em si no ci.yml de cada servico - isso e feature propria em cada repositorio (auth-service feat-016, bets-service feat-018, stats-service feat-019, api-gateway feat-014, telegram-integration feat-010, web feat-030), que depende do kubeconfig gerado aqui.",
+      "dependencies": [
+        "feat-004",
+        "feat-005"
+      ],
+      "status": "not-started",
+      "plan_review": "",
+      "jira": "",
+      "subtasks": [],
+      "evidence": ""
     }
   ]
 }
