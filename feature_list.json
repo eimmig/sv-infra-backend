@@ -409,7 +409,7 @@
       "dependencies": [
         "feat-005"
       ],
-      "status": "in-progress",
+      "status": "done",
       "plan_review": "2026-09-11 - mudanca mecanica de 1 manifest (2 linhas de env var apontando pro Service interno ja existente, ClusterIP padrao do k3s por nome), sem novo recurso, sem mudanca de rede/porta/imagem. Nao ha decisao de design real: o nome do Service e a porta ja sao publicos (bets-service:8082, stats-service:8083, definidos em k8s/bets-service.yaml e k8s/stats-service.yaml, ambos ja aplicados no cluster). Risco residual: exige rollout restart do pod auth-service no servidor real para pegar a env var nova junto da imagem nova (auth-service feat-015) - verificacao fica pra subtask unica.",
       "jira": "SV-390",
       "subtasks": [
@@ -430,7 +430,7 @@
           "jira": "SV-391"
         }
       ],
-      "evidence": ""
+      "evidence": "Fechada em 2026-09-15. k8s/auth-service.yaml ja tinha as 2 env vars commitadas antes da sessao (b97dc3e); esta sessao trouxe a verificacao real que faltava contra o k3s de producao (servidor Debian, nao kind): SSH no servidor (~/infra em develop, 3 commits atras - git pull --ff-only trouxe b97dc3e/944c761), kubectl apply -f k8s/auth-service.yaml (deployment configured) + kubectl rollout restart deployment auth-service, rollout confirmado com kubectl rollout status (successfully rolled out) e kubectl exec no pod novo confirmando BETS_SERVICE_URL=http://bets-service:8082/STATS_SERVICE_URL=http://stats-service:8083 no ambiente. Verificacao de negocio: kubectl port-forward svc/auth-service 18081:8081 + 1 POST /api/v1/admin/tenants real (tenant novo feat006-verify, chave lida do Secret stakevault-secrets so no shell remoto, nunca impressa) respondeu downstreamProvisioningFailures: [] - confirma auth-service orquestrando bets-service e stats-service com sucesso dentro do cluster real. Mesma evidencia serve de fechamento para auth-service feat-015 (Review la, aguardando so essa prova de producao). ./init.sh deste harness e da raiz verdes."
     }
   ]
 }

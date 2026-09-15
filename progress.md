@@ -2,9 +2,8 @@
 
 ## Estado Atual (Current State)
 
-**Última atualização:** 2026-09-10
-**Feature ativa:** nenhuma (`feat-001`/`feat-002`/`feat-003` `done`; `feat-004` `not-started`,
-sem `plan_review`)
+**Última atualização:** 2026-09-15
+**Feature ativa:** nenhuma (`feat-001`..`feat-006` todas `done`)
 
 ## Status
 
@@ -22,8 +21,7 @@ sem `plan_review`)
 
 ### Próximos passos (Next Steps)
 
-1. Nada neste repositório até `epic-004`/`epic-005` fecharem — `feat-002` depende deles.
-2. O caminho crítico agora é `epic-002` (`auth-service`), que só dependia de `epic-001`.
+1. Nenhum pendente neste harness — ver entradas datadas abaixo para `feat-002`..`feat-006`.
 
 ## Bloqueios / Riscos
 
@@ -179,3 +177,30 @@ serviço de aplicação sobe via seu próprio `mvnw`/`uv` no host). Corrigido an
 desenho completo. `epic-010` (raiz) fechado — **todos os 9 epics do backlog raiz estão `done`**.
 Cluster `kind` deixado no ar ao final desta sessão para inspeção, removível a qualquer momento
 (`kind delete cluster --name stakevault`) — não faz parte do estado do repositório.
+
+## `feat-006` fechada — env vars de orquestração de tenant no k3s real (2026-09-15)
+
+Cross-repo com `auth-service feat-015` (reverte as 3 chamadas admin manuais por 1 chamada em
+código, `auth-service` orquestrando `bets-service`/`stats-service`). O manifest
+(`k8s/auth-service.yaml` com `BETS_SERVICE_URL`/`STATS_SERVICE_URL`) já tinha sido commitado
+antes desta sessão (`b97dc3e`) — faltava a verificação real contra o servidor de produção, que
+era a única coisa pendente da subtask.
+
+Acesso ao servidor real obtido nesta sessão: `ssh eduardo@192.168.2.123`, `KUBECONFIG` não é o
+default do usuário `eduardo` — precisa `export KUBECONFIG=~/.kube/config` explícito
+(`/etc/rancher/k3s/k3s.yaml` não é legível sem `sudo`, que não está configurado para rodar sem
+senha nessa sessão). Repositório `~/infra` no servidor estava 2 commits atrás do que já tinha
+sido feito localmente — `git pull --ff-only origin develop` antes de aplicar.
+
+Verificação real executada: `kubectl apply -f k8s/auth-service.yaml` + `kubectl rollout restart
+deployment auth-service`, rollout confirmado (`successfully rolled out`), `kubectl exec` no pod
+novo confirmando as 2 env vars no ambiente. Fluxo de negócio: rotas admin continuam fora do
+Ingress (por design, ver `docs/services/infra.md`) — `kubectl port-forward svc/auth-service
+18081:8081` + 1 `POST /api/v1/admin/tenants` real (tenant `feat006-verify`) com a chave lida do
+`Secret stakevault-secrets` só dentro do shell remoto (nunca impressa nesta sessão), resposta
+`downstreamProvisioningFailures: []` — confirma a orquestração funcionando de ponta a ponta em
+produção. Mesma evidência serve para fechar `auth-service feat-015` (estava em Review, faltava
+só essa prova).
+
+`./init.sh` deste repositório e da raiz verdes. `docs/services/infra.md` (raiz) ganhou seção
+curta sobre o achado; `CHANGELOG.md` deste repositório ganhou entrada em `Added`.
