@@ -3,7 +3,36 @@
 ## Estado Atual (Current State)
 
 **Última atualização:** 2026-09-15
-**Feature ativa:** nenhuma (`feat-001`..`feat-006` todas `done`)
+**Feature ativa:** `feat-007` (`epic-028` da raiz) `in-progress` — subtasks `.1`/`.2` (manifest
+RBAC + script de distribuição) `done`, `.3` (aplicar/gerar/distribuir de verdade) e `.4`
+(fechamento) parados esperando ação humana explícita no cluster de produção.
+
+## `feat-007` — ServiceAccount de CI restrito (2026-09-15, parcial)
+
+Autorado `k8s/ci-deployer-rbac.yaml` (`ServiceAccount ci-deployer` + `Role`/`RoleBinding`
+restritos a `get`/`patch`/`update` em `Deployment`, só os 6 Deployments de aplicação) e
+`tools/kube_deploy_setup.py` (raiz — aplica o manifest, gera o token via `kubectl create token
+--duration` e distribui como `KUBE_CONFIG` nos 6 repositórios via `gh`). `Plan Reviewer` corrigiu
+a description original (pedia "token de longa duração" sem mecanismo) — a documentação oficial
+do Kubernetes desencoraja a forma legada de `Secret` estática desde a 1.24, TokenRequest API é a
+recomendação atual pra credencial de cliente externo (CI).
+
+**Não aplicado nem distribuído nesta sessão — por design, não por falta de tentativa**: esta
+sessão tentou verificar conectividade real com o servidor (`ssh eduardo@192.168.2.123`, endereço
+documentado no `session-handoff.md` anterior) e foi bloqueada pelo classificador de auto-mode do
+Claude Code ("Production Reads" — nega ações de leitura/acesso a produção sem autorização
+explícita do usuário nesta sessão). Isso é o comportamento correto pra essa categoria de ação
+(minerar credencial real de CD e distribuir em 6 repositórios GitHub reais não é algo pra uma
+sessão autônoma fazer sem confirmação) — não um bug nem um workaround a buscar. `branch
+feature/SV-418` (+ subtasks `SV-419`/`SV-420`) empurrada pro GitHub, não mergeada em `develop`
+(a feature não está funcionalmente completa - RBAC não existe no cluster real ainda). Story
+Jira `SV-418` em `In Progress`.
+
+Próxima sessão (ou o usuário diretamente) com autorização/acesso reais:
+`python tools/kube_deploy_setup.py --check` primeiro (só lê, não aplica), depois sem `--check`
+pra aplicar o manifest, gerar o token e distribuir. Ver `docs/services/infra.md` seção "CD
+automático via CI" (raiz) e `infra/CLAUDE.md` seção "Verificação — CD automático" pro passo a
+passo completo.
 
 ## Status
 

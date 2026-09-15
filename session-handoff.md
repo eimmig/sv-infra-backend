@@ -7,29 +7,41 @@
 
 ## Objetivo atual
 
-- **Todas as 6 features deste harness estão `done`** (`feat-001..006`). Nenhum trabalho pendente
-  neste harness até surgir uma nova feature.
+`feat-001`..`feat-006` `done`. `feat-007` (`epic-028` da raiz, ServiceAccount de CI restrito +
+`KUBE_CONFIG` pros 6 repos) `in-progress`, parcial — ver abaixo.
 
 ## Concluído nesta sessão (2026-09-15)
 
-- [x] `feat-006` (env vars `BETS_SERVICE_URL`/`STATS_SERVICE_URL` em `auth-service.yaml`, cross-
-      repo com `auth-service feat-015`) fechada — manifest já tinha as env vars commitadas
-      (`b97dc3e`), esta sessão fez a verificação real que faltava: SSH no servidor Debian
-      (`eduardo@192.168.2.123`), `git pull --ff-only` em `~/infra` pra sincronizar o manifest,
-      `kubectl apply` + `rollout restart deployment auth-service`, confirmado via `kubectl exec`
-      que o pod novo tem as 2 env vars, e 1 chamada admin real
-      (`POST /api/v1/admin/tenants` via `kubectl port-forward svc/auth-service`) confirmando
-      `downstreamProvisioningFailures: []`. Mesma evidência fecha `auth-service feat-015`
-      (estava em Review, faltava só essa prova de produção).
+- [x] `feat-007.1`/`.2`: `k8s/ci-deployer-rbac.yaml` + `tools/kube_deploy_setup.py` (raiz)
+      autorados e revisados (`Plan Reviewer` corrigiu o mecanismo de token — TokenRequest API,
+      não `Secret` estática legada). `feature/SV-418` (+ subtasks `SV-419`/`SV-420`) empurrada
+      pro GitHub, **não mergeada em `develop`** — feature não funcionalmente completa.
+- [ ] `feat-007.3` (aplicar RBAC + gerar token + distribuir `KUBE_CONFIG` nos 6 repos): **não
+      feita nesta sessão de propósito** — o classificador de auto-mode do Claude Code bloqueou a
+      tentativa de checar conectividade SSH com o servidor real ("Production Reads", nega acesso
+      a produção sem autorização explícita nesta sessão). Comportamento esperado pra essa
+      categoria de ação, não um bug. Precisa do usuário rodando diretamente, ou de uma sessão que
+      ele autorize explicitamente para acesso de produção.
 
 ## Bloqueios / Riscos
 
-- Nenhum.
+- **`feat-007.3` bloqueada por design** (autorização de acesso a produção, não falta de
+  informação) — ver acima. `k8s/ci-deployer-rbac.yaml` e `tools/kube_deploy_setup.py` já estão
+  prontos, só falta rodar.
 
 ## Próxima sessão — por onde começar
 
 1. Rodar `./init.sh` (raiz e deste repositório) — deve sair `0`.
-2. Nenhuma feature pendente neste harness. Acesso ao servidor real: `ssh eduardo@192.168.2.123`,
-   `KUBECONFIG=~/.kube/config` (não é o padrão do usuário `eduardo` nessa máquina — precisa do
-   export explícito), repo `~/infra` em `develop` — sempre `git pull` antes de aplicar manifest,
-   servidor pode estar atrás do que já foi commitado localmente.
+2. Se o usuário autorizar acesso de produção nesta sessão (ou rodar diretamente): `ssh
+   eduardo@192.168.2.123`, `export KUBECONFIG=~/.kube/config` (não é o padrão do usuário
+   `eduardo` nessa máquina), repo `~/infra` em `develop` — `git pull` antes de qualquer coisa
+   (buscar os commits desta sessão: `feature/SV-418`, ainda só no GitHub, precisa também chegar
+   em `~/infra` local do servidor ou ser aplicado via checkout daquela branch). Depois:
+   `python tools/kube_deploy_setup.py --check` (só lê) e, se ok, sem `--check` (aplica RBAC +
+   gera token + distribui `KUBE_CONFIG` nos 6 repositórios).
+3. Depois de `.3` confirmado (`--check` mostrando os 6 `KUBE_CONFIG` gravados): `.4` (CHANGELOG +
+   fechamento), merge `feature/SV-418` → `develop`, `feature_list.json` `feat-007` `done`,
+   `epic-028` (raiz) segue `in-progress` até os 6 repositórios de aplicação implementarem o job
+   `deploy` próprio (`auth-service feat-016`, `bets-service feat-018`, `stats-service feat-019`,
+   `api-gateway feat-014`, `telegram-integration feat-010`, `web feat-030` — todos dependem
+   deste).
