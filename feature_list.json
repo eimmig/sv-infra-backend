@@ -426,7 +426,7 @@
           ],
           "validation": "curl real contra o Ingress do k3s de producao: 1 chamada admin cria tenant nos 3 servicos, downstreamProvisioningFailures:[] na resposta.",
           "owner": "agente",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-391"
         }
       ],

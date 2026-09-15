@@ -23,6 +23,12 @@ CI (ver `docs/CI-CD.md`).
 - `.env.example` com todas as variáveis necessárias e `.gitignore` cobrindo o `.env` real.
 - `.gitattributes` fixando LF em `.sh`/`.yml`/`.json`, para checkout Windows não gerar CRLF que
   quebra em runner Linux.
+- `k8s/auth-service.yaml` ganhou `BETS_SERVICE_URL`/`STATS_SERVICE_URL` (`feat-006`), apontando
+  para o `Service` `ClusterIP` interno de `bets-service`/`stats-service` (`http://bets-service:8082`,
+  `http://stats-service:8083`) — necessário para `auth-service feat-015` (orquestração de
+  provisionamento de tenant) funcionar no cluster real. Aplicado e verificado no k3s de produção:
+  rollout restart do pod e 1 chamada admin real (`POST /api/v1/admin/tenants`) confirmando
+  `downstreamProvisioningFailures: []`.
 
 ### Changed
 
