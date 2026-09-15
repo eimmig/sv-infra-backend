@@ -453,7 +453,7 @@
         {
           "id": "feat-007.2",
           "name": "Script de aplicacao/token/distribuicao (tools/kube_deploy_setup.py) + docs",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-420"
         },
         {
