@@ -103,6 +103,25 @@ lugar real para código/config versionados, seguindo o mesmo padrão dos outros 
     aplicação + `kind load docker-image stakevault/<serviço>:local --name stakevault` antes de
     aplicar — sem registry configurado (fora de escopo de um cluster de demonstração local de
     TCC).
+- **`feat-007` (CD automático, fecha `epic-028` da raiz)**: decisão do usuário 2026-09-15 —
+  `kubectl rollout restart` via CI em vez de GitOps completo (ArgoCD/Flux, descartado por
+  desproporcional a um cluster de ambiente único). Este harness cobre só o lado do servidor:
+  `k8s/ci-deployer-rbac.yaml` (`ServiceAccount ci-deployer` + `Role`/`RoleBinding` restritos a
+  `get`/`patch`/`update` em `Deployment`, escopados por `resourceNames` aos 6 Deployments de
+  aplicação — nunca `ClusterRole`, nunca acesso a `Secret`). `tools/kube_deploy_setup.py` (raiz)
+  aplica esse manifest, gera um token do `ci-deployer` via `kubectl create token --duration`
+  (TokenRequest API — **não** a `Secret` estática tipo `kubernetes.io/service-account-token`,
+  forma legada desencorajada pela documentação oficial do Kubernetes desde a 1.24) e distribui
+  como o secret `KUBE_CONFIG` nos 6 repositórios de aplicação (`gh secret set`, um por repositório
+  — GitHub não compartilha secrets entre repositórios, mesmo padrão de `SONAR_TOKEN` em
+  `docs/CI-CD.md` "Setup pendente"). O job de deploy em si (`kubectl rollout restart
+  deployment/<serviço>`) é feature própria em cada repositório de aplicação (`auth-service
+  feat-016`, `bets-service feat-018`, `stats-service feat-019`, `api-gateway feat-014`,
+  `telegram-integration feat-010`, `web feat-030`), não deste harness. **Precisa de
+  conectividade real com o k3s de produção pra aplicar/gerar/distribuir** — uma sessão sem essa
+  conectividade (ex.: `kubectl config current-context` apontando pra um `kind` local morto) só
+  consegue autorar o manifest e o script, nunca rodá-los; ver seção "Verificação — CD automático"
+  abaixo.
 - **Sem arquitetura hexagonal, sem i18n**: este harness não tem código de aplicação nem texto
   voltado ao usuário final — as convenções de `../docs/CONVENTIONS.md` sobre estrutura
   `domain/`/`application/`/`adapter/` e internacionalização não se aplicam aqui.
@@ -129,11 +148,15 @@ Uma feature deste harness só está `done` quando (done only when):
 - [ ] Para `feat-001`: `docker compose up` sobe com todos os healthchecks passando.
 - [ ] Para `feat-002`: teste de resiliência documentado em `../docs/services/infra.md` executado
       com sucesso.
+- [ ] Para `feat-007`: `python tools/kube_deploy_setup.py --check` confirma `KUBE_CONFIG` gravado
+      nos 6 repositórios de aplicação — `./init.sh` (só valida `docker-compose.yml`) não cobre
+      `k8s/`, então não é evidência suficiente pra esta feature especificamente.
 - [ ] `Delivery Reviewer` rodado contra a feature (ver `../docs/AGENT-SKILLS.md`).
 - [ ] `CHANGELOG.md` deste harness tem uma entrada em `[Unreleased]` descrevendo a mudança.
 - [ ] `feature_list.json` atualizado com status e evidência.
-- [ ] `../feature_list.json` (raiz) atualizado — `evidence` do epic correspondente
-      (`epic-001` para `feat-001`, `epic-007` para `feat-002`).
+- [ ] `../feature_list.json` (raiz) atualizado — `evidence` do epic correspondente (`epic-001`
+      para `feat-001`, `epic-007` para `feat-002`, `epic-028` para `feat-007` — os epics de
+      `feat-003`..`feat-006` não têm mapeamento 1:1 aqui, ver a description de cada um).
 
 ## Fim de sessão (End of Session)
 
@@ -203,3 +226,24 @@ Verificado de ponta a ponta nesta sessão (não só `kubectl get pods` verde): t
 via `port-forward`, login e registro de aposta via `Ingress` (`http://localhost:8888`),
 `FACT_BET`/`PROCESSED_EVENT` conferidos dentro do pod `postgres-stats` — o mesmo fluxo do
 `docker-compose`, agora rodando no cluster.
+
+**Este `kind` local existiu só pra `feat-004`** — o alvo real desde `feat-005` (2026-09-11,
+`../docs/services/infra.md` "Migração pro k3s de produção") é um servidor Debian com k3s,
+persistente (não recriado a cada sessão como o `kind`). Os mesmos manifests em `k8s/` valem para
+os dois, puxando as imagens do GHCR (`imagePullSecrets: ghcr-pull`) em vez de `kind load`.
+
+## Verificação — CD automático (`feat-007`)
+
+Pré-requisito: `kubectl` apontando pro k3s de produção real (`kubectl cluster-info` precisa
+responder) — **não** o cluster `kind` local de `feat-004` (efêmero, normalmente nem existe entre
+sessões). `gh` autenticado (mesmo requisito de `tools/sonar_setup.py`/`tools/jira_story.py`).
+
+```bash
+python tools/kube_deploy_setup.py --check      # confere conectividade + quais dos 6 repos ja tem KUBE_CONFIG
+python tools/kube_deploy_setup.py              # aplica k8s/ci-deployer-rbac.yaml + gera token (1 ano) + distribui
+```
+
+O token nunca é impresso (mesmo padrão de `SONAR_TOKEN`). Sem rotação automática — rodar de novo
+antes do token expirar (`--duration` customiza, default `8760h`/1 ano). Uma sessão sem
+conectividade real com o cluster (`kubectl cluster-info` falha) não consegue rodar nenhum dos dois
+comandos — só autorar/revisar `k8s/ci-deployer-rbac.yaml` e `tools/kube_deploy_setup.py`.
