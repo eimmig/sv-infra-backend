@@ -94,3 +94,8 @@ CI (ver `docs/CI-CD.md`).
 - [SV-353](https://stakevault.atlassian.net/browse/SV-353) - CHANGELOG e verificacao final
 - [SV-390](https://stakevault.atlassian.net/browse/SV-390) - auth-service: env vars BETS_SERVICE_URL/STATS_SERVICE_URL (orquestracao de tenant)
 - [SV-391](https://stakevault.atlassian.net/browse/SV-391) - Adicionar env vars + aplicar no cluster real + CHANGELOG
+- [SV-418](https://stakevault.atlassian.net/browse/SV-418) - ServiceAccount de CI com RBAC restrito + kubeconfig para deploy automatico (fecha epic-028 da raiz)
+- [SV-419](https://stakevault.atlassian.net/browse/SV-419) - Manifest RBAC (ServiceAccount + Role + RoleBinding restritos)
+- [SV-420](https://stakevault.atlassian.net/browse/SV-420) - Script de aplicacao/token/distribuicao (tools/kube_deploy_setup.py) + docs
+- [SV-421](https://stakevault.atlassian.net/browse/SV-421) - Aplicar RBAC + gerar token + distribuir KUBE_CONFIG nos 6 repos (exige kubectl real, operador)
+- [SV-422](https://stakevault.atlassian.net/browse/SV-422) - CHANGELOG e verificacao final

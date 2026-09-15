@@ -440,10 +440,35 @@
         "feat-004",
         "feat-005"
       ],
-      "status": "not-started",
-      "plan_review": "",
-      "jira": "",
-      "subtasks": [],
+      "status": "in-progress",
+      "plan_review": "Plan Reviewer 2026-09-15: READY WITH CONCERNS pra autoria (manifest RBAC + script de distribuicao), BLOCKED pra aplicacao real. Achado MAJOR corrigido antes de escrever qualquer coisa: a description original pedia 'token de longa duracao do ServiceAccount' sem especificar o mecanismo - pesquisa contra a documentacao oficial do Kubernetes (kubernetes.io/docs/concepts/security/service-accounts, kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin) confirma que a forma legada (Secret manual tipo kubernetes.io/service-account-token, nunca expira sozinho) e desencorajada desde a 1.24 - a recomendacao atual pra cliente externo (CI, fora do cluster) e TokenRequest API via `kubectl create token <sa> --duration=<N>`, que ainda aceita duracao longa (ex. 8760h/1 ano) mas ao menos tem expiracao e e revogavel deletando o ServiceAccount. Adotado: `kubectl create token`, nao Secret estatica. Achado BLOCKER de ambiente, nao de plano: esta sessao nao tem conectividade com o cluster real (kubectl aponta pra um contexto kind-stakevault morto, kubectl cluster-info/get nodes/ate dry-run=client falham por falta de rede - client-side dry-run tambem baixa o schema OpenAPI de um cluster vivo nesta versao do kubectl) - o servidor real e um k3s de producao (Debian, infra/feat-005) que so o operador consegue alcancar. Decisao adotada: autorar tudo que nao precisa de cluster (manifest YAML versionado, script Python que roda contra o kubeconfig que o OPERADOR ja tem configurado - nunca uma credencial propria deste repositorio) e documentar claramente que aplicar/gerar token/distribuir secret precisa rodar numa maquina/sessao com acesso real, nunca fingir que rodou. Plano adotado: (1) k8s/ci-deployer-rbac.yaml - ServiceAccount ci-deployer + Role (so get/patch/update em Deployment, apiGroup apps, resourceNames explicito pros 6 Deployments de aplicacao - nao ClusterRole, nao acesso a Secret) + RoleBinding, mesmo padrao de comentario/estilo dos outros manifests em k8s/. (2) tools/kube_deploy_setup.py (raiz, mesmo padrao de tools/sonar_setup.py - REPOS = mesmos 6 repos, gh via GH_TOKEN ou git credential, nunca imprime o token): aplica o manifest, `kubectl create token ci-deployer --duration` (default 8760h), monta um kubeconfig minimo (server+CA do contexto atual do operador + o token novo, sem nenhum outro dado do kubeconfig pessoal dele) e grava via `gh secret set KUBE_CONFIG --repo <cada um dos 6>`. `--check` so confere conectividade/RBAC ja aplicado/quais repos ja tem o secret, sem gravar nada. (3) infra/CLAUDE.md ganha secao 'CD automatico (feat-007)' + bullet nas Regras especificas + item no DoD (init.sh so valida docker-compose, nao cobre k8s/ - checklist correto pra esta feature e `--check` do script); docs/services/infra.md ganha entrada correspondente; docs/CI-CD.md 'Setup pendente' ganha o par KUBE_CONFIG ao lado de SONAR_TOKEN. (4) CHANGELOG + feature_list.json (subtasks .1/.2 autoria - feito nesta sessao; subtask .3 aplicar/gerar/distribuir - explicitamente not-started, exige sessao com kubectl real; subtask .4 fechamento so depois de .3). Feature NAO fica done nesta sessao - so a parte que nao precisa de cluster.",
+      "jira": "SV-418",
+      "subtasks": [
+        {
+          "id": "feat-007.1",
+          "name": "Manifest RBAC (ServiceAccount + Role + RoleBinding restritos)",
+          "status": "done",
+          "jira": "SV-419"
+        },
+        {
+          "id": "feat-007.2",
+          "name": "Script de aplicacao/token/distribuicao (tools/kube_deploy_setup.py) + docs",
+          "status": "not-started",
+          "jira": "SV-420"
+        },
+        {
+          "id": "feat-007.3",
+          "name": "Aplicar RBAC + gerar token + distribuir KUBE_CONFIG nos 6 repos (exige kubectl real, operador)",
+          "status": "not-started",
+          "jira": "SV-421"
+        },
+        {
+          "id": "feat-007.4",
+          "name": "CHANGELOG e verificacao final",
+          "status": "not-started",
+          "jira": "SV-422"
+        }
+      ],
       "evidence": ""
     }
   ]
