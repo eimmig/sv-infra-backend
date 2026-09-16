@@ -6,6 +6,14 @@
 # web (SPA, fallback de rota tratado dentro do proprio nginx da imagem, nao aqui). Os demais
 # servicos (auth/bets/stats/telegram-integration) so tem Service ClusterIP, alcancaveis
 # apenas de dentro do cluster - nunca expostos aqui.
+#
+# TLS: acesso hoje e por IP puro na LAN (192.168.2.123, k3s de producao - sem dominio/DNS),
+# entao nao ha CA publica (Let's Encrypt exige dominio) - secret web-tls-selfsigned gerado por
+# k8s/tls/generate-dev-cert.sh (nunca versionado, so o script). Sem "hosts" no bloco tls: vira
+# o certificado default deste Ingress para qualquer SNI, o que cobre acesso por IP (SNI vazio
+# ou o proprio IP). Browser mostra aviso de cert nao confiavel na primeira visita (esperado,
+# self-signed) - aceitar uma vez e suficiente; e o bastante pra crypto.randomUUID funcionar
+# (exige secure context, que HTTPS satisfaz mesmo com cert nao confiavel).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -14,6 +22,8 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - secretName: web-tls-selfsigned
   rules:
     - http:
         paths:

@@ -7,3 +7,8 @@
 # Mesma regra para o Secret do Kubernetes (feat-004) — k8s/secret.example.yaml e o
 # versionado, com placeholders; k8s/secret.yaml (valores reais) nunca e versionado.
 k8s/secret.yaml
+
+# Cert/key TLS self-signed gerados por k8s/tls/generate-dev-cert.sh — material privado,
+# regenerado sob demanda (script E' versionado, os artefatos gerados nao).
+k8s/tls/*.crt
+k8s/tls/*.key
