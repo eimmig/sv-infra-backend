@@ -6,3 +6,96 @@ repositório adiciona uma entrada em `[Unreleased]` — verificado automaticamen
 CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
+
+### Added
+
+- `docker-compose.yml` com a infraestrutura local completa (`feat-001`, fecha `epic-001` da
+  raiz): três instâncias PostgreSQL (`postgres-auth` 5432, `postgres-bets` 5433,
+  `postgres-stats` 5434 — Database per Service), RabbitMQ 4 com console de gerenciamento
+  (5672/15672), Redis com autenticação obrigatória (6379) e n8n (5678). Healthcheck em todos.
+- Topologia RabbitMQ versionada em `rabbitmq/definitions.json`: exchange `bets.events` (topic),
+  fila `stats.bet-events` (quorum, `x-delivery-limit: 3`, dead-letter para `bets.events.dlx`),
+  exchange `bets.events.dlx` (fanout) e fila `stats.bet-events.dlq` — DLQ configurada desde o
+  início, não como melhoria futura. Contrato completo em `docs/API-CONTRACTS.md`.
+- `rabbitmq/apply-definitions.sh` e o container one-shot `rabbitmq-init`, que aplicam a
+  topologia pela API de gerenciamento depois do broker ficar `healthy` (`load_definitions`
+  impediria a criação do vhost e do usuário default).
+- `.env.example` com todas as variáveis necessárias e `.gitignore` cobrindo o `.env` real.
+- `.gitattributes` fixando LF em `.sh`/`.yml`/`.json`, para checkout Windows não gerar CRLF que
+  quebra em runner Linux.
+- `k8s/auth-service.yaml` ganhou `BETS_SERVICE_URL`/`STATS_SERVICE_URL` (`feat-006`), apontando
+  para o `Service` `ClusterIP` interno de `bets-service`/`stats-service` (`http://bets-service:8082`,
+  `http://stats-service:8083`) — necessário para `auth-service feat-015` (orquestração de
+  provisionamento de tenant) funcionar no cluster real. Aplicado e verificado no k3s de produção:
+  rollout restart do pod e 1 chamada admin real (`POST /api/v1/admin/tenants`) confirmando
+  `downstreamProvisioningFailures: []`.
+
+### Changed
+
+- `feature_list.json` ganhou o campo `plan_review` por feature, pré-requisito para marcar uma
+  feature como `in-progress` (mesmo papel que `evidence` tem para `done`). Mudança aplicada aos
+  7 harnesses do projeto — ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+- `feature_list.json` ganhou os campos `jira` (chave da story, que também nomeia a branch de
+  trabalho) e `subtasks` (passos de implementação vindos do `Plan Reviewer`, cada um com `id`,
+  `name`, `status` e `jira`) por feature. `feat-001` foi retro-preenchida com as 8 subtasks que
+  a implementação de fato teve; os campos `jira` ficam vazios porque a story foi entregue antes
+  da decisão de espelhar o backlog no Jira. Ver `CLAUDE.md` da raiz, seção "Regras de trabalho".
+- Bootstrap dos 6 repositórios de aplicação (`feat-003`): commit inicial em `main` e branch
+  `develop` publicados em `sv-api-gateway`, `sv-auth-backend`, `sv-bets-backend`,
+  `sv-stats-backend`, `sv-telegram-integration-backend` e `sv-frontend`. Só harness, sem código
+  de aplicação. `init.sh` e `.github/scripts/validate-changelog.sh` versionados como `100755` nos
+  7 repositórios — o `CLAUDE.md` manda rodar `./init.sh`, que falharia num clone Linux com o bit
+  ausente.
+- Verificado que a guarda por arquivo-marcador funciona no GitHub: nos 12 pushes (6 × `main`,
+  6 × `develop`) a pipeline ficou verde, com `checkout` executado e todos os passos seguintes
+  `skipped`. Sem a guarda, o `actions/setup-node` com `cache: npm` teria falhado por ausência de
+  lockfile.
+- Chave de projeto do SonarCloud alinhada ao formato que a ferramenta gera ao importar do GitHub
+  (`eimmig_<repo>`) nos 6 repositórios de aplicação — `feat-003.8`, descoberta durante a
+  implementação e acrescentada ao backlog em vez de virar trabalho invisível.
+- Credencial do SonarCloud distribuída para os 6 repositórios de aplicação (secret `SONAR_TOKEN`,
+  variable `SONAR_ORGANIZATION`) por `tools/sonar_setup.py`, que valida token, organização e
+  existência dos 6 projetos contra a API do SonarCloud antes de gravar, e nunca imprime o token.
+- Guarda por arquivo-marcador (`hashFiles`) nos 6 `ci.yml` dos repositórios de aplicação e
+  `.gitignore`/`.gitattributes` por stack nos mesmos 6 — preparados aqui (`feat-003`), aplicados
+  no commit inicial de cada um. Sem a guarda, um repositório só com harness ficaria com CI
+  vermelha desde o primeiro push, porque `actions/setup-node` com `cache: npm` **falha** o job sem
+  lockfile e `mvn package`/`npm ci`/`uv sync` não têm projeto para construir.
+- `.github/workflows/ci.yml`: comentário explicitando que a validação do `CHANGELOG.md` roda em
+  **todo** PR, inclusive nos de subtask → branch da story, cujas linhas se acumulam em
+  `[Unreleased]` até o merge em `develop`.
+
+### Fixed
+
+- `.github/scripts/validate-changelog.sh` passou a ser versionado como `100755` (bit de execução).
+  Estava como `100644` desde o commit inicial — o `run:` do workflow o invoca direto, então o
+  primeiro PR deste repositório teria falhado com *Permission denied*. Passou despercebido porque
+  o passo só roda em `pull_request` e todos os commits até aqui foram diretos em `develop`.
+  Encontrado pelo `Plan Reviewer` de `feat-003` (`SV-2`), antes de o mesmo defeito ser propagado
+  para os outros 6 repositórios.
+- `feat-002` não cita mais **RNF06 (Escalabilidade)** como justificativa do teste de resiliência.
+  Conferido no PDF do TCC 1 em 2026-08-17: a tabela original tem 6 RNFs e nenhum é sobre
+  tolerância a falha — RNF06 é volume. A base do teste no TCC 1 é a prosa da seção 4.1 (p. 30) e
+  do capítulo de arquitetura, que especificam *retries* + DLQ sem atribuir ID ao requisito.
+  Nenhum RNF novo foi criado. Ver `docs/REQUIREMENTS.md` e `docs/DECISIONS-LOG.md` no vault.
+- [SV-261](https://stakevault.atlassian.net/browse/SV-261) - Teste de resiliencia cross-service: DLQ e retry (fecha epic-007 da raiz)
+- [SV-262](https://stakevault.atlassian.net/browse/SV-262) - Migração para Kubernetes (fecha epic-010 da raiz) — alvo real de implantação do TCC 1
+- [SV-263](https://stakevault.atlassian.net/browse/SV-263) - Ambiente: infra + 4 servicos Java no ar com segredos sincronizados
+- [SV-264](https://stakevault.atlassian.net/browse/SV-264) - Provisionamento do tenant de teste + caso de controle
+- [SV-265](https://stakevault.atlassian.net/browse/SV-265) - Cenario retry: derrubar/subir stats-service sem perda de mensagem
+- [SV-266](https://stakevault.atlassian.net/browse/SV-266) - Cenario DLQ: falha consecutiva de consumo isola sem travar o fluxo
+- [SV-267](https://stakevault.atlassian.net/browse/SV-267) - Evidencia, documentacao e fechamento
+- [SV-286](https://stakevault.atlassian.net/browse/SV-286) - Dockerfiles dos 5 servicos de aplicacao (cross-repo, feature propria em cada um)
+- [SV-287](https://stakevault.atlassian.net/browse/SV-287) - Cluster kind + ingress-nginx + manifests de infra (Postgres x3, RabbitMQ+Job, Redis, n8n)
+- [SV-288](https://stakevault.atlassian.net/browse/SV-288) - Manifests dos 5 servicos de aplicacao + Ingress + verificacao end-to-end real
+- [SV-289](https://stakevault.atlassian.net/browse/SV-289) - Documentacao (CLAUDE.md, ARCHITECTURE.md, docs/services/infra.md) + CHANGELOG e verificacao final
+- [SV-351](https://stakevault.atlassian.net/browse/SV-351) - Migrar manifests do kind local pro k3s de producao (Debian) + GHCR
+- [SV-352](https://stakevault.atlassian.net/browse/SV-352) - Atualizar 6 manifests + criar web.yaml + dividir ingress.yaml por path
+- [SV-353](https://stakevault.atlassian.net/browse/SV-353) - CHANGELOG e verificacao final
+- [SV-390](https://stakevault.atlassian.net/browse/SV-390) - auth-service: env vars BETS_SERVICE_URL/STATS_SERVICE_URL (orquestracao de tenant)
+- [SV-391](https://stakevault.atlassian.net/browse/SV-391) - Adicionar env vars + aplicar no cluster real + CHANGELOG
+- [SV-418](https://stakevault.atlassian.net/browse/SV-418) - ServiceAccount de CI com RBAC restrito + kubeconfig para deploy automatico (fecha epic-028 da raiz)
+- [SV-419](https://stakevault.atlassian.net/browse/SV-419) - Manifest RBAC (ServiceAccount + Role + RoleBinding restritos)
+- [SV-420](https://stakevault.atlassian.net/browse/SV-420) - Script de aplicacao/token/distribuicao (tools/kube_deploy_setup.py) + docs
+- [SV-421](https://stakevault.atlassian.net/browse/SV-421) - Aplicar RBAC + gerar token + distribuir KUBE_CONFIG nos 6 repos (exige kubectl real, operador)
+- [SV-422](https://stakevault.atlassian.net/browse/SV-422) - CHANGELOG e verificacao final

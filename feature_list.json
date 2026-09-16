@@ -5,16 +5,471 @@
       "name": "Infraestrutura Docker Compose (fecha epic-001 da raiz)",
       "description": "infra/docker-compose.yml com PostgreSQL (uma instancia logica por servico de aplicacao - Database per Service - ver auth-service/bets-service/stats-service), RabbitMQ com Dead Letter Queue (DLQ) configurada desde o inicio (nao adicionada depois), Redis (cache exclusivo de stats-service), n8n (recebe webhook do bot Telegram, aciona telegram-integration). Healthchecks configurados em cada servico de infra para que dependentes (ex.: stats-service esperando RabbitMQ) so subam depois que a dependencia estiver de fato pronta - ver docs/OBSERVABILITY-AND-CONFIG.md. Definicao de pronto: 'docker compose config' valido e 'docker compose up' com todos os healthchecks passando. Repositorio GitHub: https://github.com/eimmig/sv-infra-backend.git.",
       "dependencies": [],
-      "status": "in-progress",
-      "evidence": ""
+      "status": "done",
+      "plan_review": "2026-08-03, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano antes de qualquer codigo. Veredito: REVISE. Achados corrigidos no plano antes da implementacao: (BLOCKER) load_definitions impede a criacao do vhost / e do usuario default num no novo, e o healthcheck check_running ainda passa - trocado por container one-shot rabbitmq-init aplicando a topologia pos-boot; (MAJOR) healthcheck em exec form nao expande ${VAR}, o compose nunca ficaria healthy - trocado para CMD-SHELL; (MAJOR) depends_on rabbitmq no n8n contradiz o fluxo de docs/services/telegram-integration.md - removido; (MAJOR) tipo/argumentos da fila viram armadilha PRECONDITION_FAILED para bets-service/stats-service - promovidos a contrato em docs/API-CONTRACTS.md; (MINOR) DLQ at-most-once e x-delivery-limit divergente do default 20 - registrados em docs/DECISIONS-LOG.md. Ambiguidade Postgres (instancia logica vs instancias distintas) escalada ao usuario, que decidiu por tres containers separados. Rodada de desafio independente executada como passes proprios, sem subagentes - independencia reduzida, declarada.",
+      "jira": "",
+      "subtasks": [
+        {
+          "id": "feat-001.1",
+          "name": "Esqueleto do compose: rede stakevault, volumes nomeados e contrato de variaveis (.env.example + .gitignore, sem default para nenhuma variavel)",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.2",
+          "name": "Tres instancias PostgreSQL (postgres-auth 5432, postgres-bets 5433, postgres-stats 5434) com healthcheck pg_isready em CMD-SHELL",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.3",
+          "name": "RabbitMQ 4 com console de gerenciamento e healthcheck rabbitmq-diagnostics",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.4",
+          "name": "Topologia da DLQ versionada em rabbitmq/definitions.json (exchange bets.events, fila quorum stats.bet-events com x-delivery-limit 3 + DLX, fila stats.bet-events.dlq) e promovida a contrato em docs/API-CONTRACTS.md",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.5",
+          "name": "Container one-shot rabbitmq-init aplicando a topologia pos-boot via POST /api/definitions (load_definitions impediria a criacao do vhost e do usuario default)",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.6",
+          "name": "Redis com senha obrigatoria e healthcheck redis-cli em CMD-SHELL",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.7",
+          "name": "n8n para o webhook do Telegram, sem depends_on (nao fala com o broker)",
+          "status": "done",
+          "jira": ""
+        },
+        {
+          "id": "feat-001.8",
+          "name": "Verificacao ponta a ponta: init.sh, compose up com os 6 containers healthy, topologia conferida por rabbitmqctl, isolamento Postgres e NOAUTH do Redis, down -v",
+          "status": "done",
+          "jira": ""
+        }
+      ],
+      "evidence": "Entregue em 2026-08-03 (branch feature/feat-001). Escopo final divergiu do texto acima em dois pontos, ambos registrados em docs/DECISIONS-LOG.md (2026-08-03): (a) tres containers Postgres separados (postgres-auth 5432, postgres-bets 5433, postgres-stats 5434) em vez de instancias logicas num container so - decisao do usuario; (b) topologia RabbitMQ aplicada pos-boot por um container one-shot rabbitmq-init (rabbitmq/apply-definitions.sh, POST /api/definitions) em vez de load_definitions, porque um no novo que importa definicoes nao cria o vhost / nem o usuario default e o healthcheck ainda assim passa (falha silenciosa apontada pelo Plan Reviewer antes de escrever codigo). Verificacao real executada: ./init.sh passou; 'docker compose up -d' subiu os 6 containers de longa duracao com status (healthy); 'rabbitmqctl list_queues name type arguments' confirmou stats.bet-events como quorum com x-dead-letter-exchange=bets.events.dlx e x-delivery-limit=3, e stats.bet-events.dlq como quorum; list_exchanges/list_bindings confirmaram bets.events (topic), bets.events.dlx (fanout) e as routing keys bet.created/bet.settled; psql confirmou os tres bancos isolados (auth/auth_user, bets/bets_user, stats/stats_user); redis-cli sem senha retornou NOAUTH (autenticacao ativa); 'docker compose config' passa sem .env (gate de CI). Stack derrubada com 'docker compose down -v'. Plan Reviewer e Delivery Reviewer rodados (rodada de desafio independente executada como passes proprios, sem subagentes - independencia reduzida, declarada)."
     },
     {
       "id": "feat-002",
       "name": "Teste de resiliencia cross-service: DLQ e retry (fecha epic-007 da raiz)",
-      "description": "Confirmar que falhas consecutivas no consumo de BetCreated/BetSettled vao para a Dead Letter Queue em vez de travar o stats-service ou perder a mensagem. Teste cross-service: derrubar stats-service, publicar eventos via bets-service, subir stats-service de novo, confirmar reprocessamento (mensagens acumuladas na fila, nao perdidas) - ver docs/services/infra.md secao 'Resiliencia: DLQ e retry automatico' para os diagramas de sequencia esperados. Rotulado como RNF06 (Escalabilidade) na tabela de requisitos, mas o criterio testado aqui e de fato tolerancia a falha/confiabilidade, nao volume - ver docs/DECISIONS-LOG.md antes de fechar esta feature. BLOQUEADO ate epic-004 (stats-service) e epic-005 (telegram-integration) da raiz estarem done - dependencia cross-repositorio, nao expressavel no campo 'dependencies' abaixo (que so referencia features deste mesmo repositorio/harness). Conferir feature_list.json da raiz antes de iniciar.",
-      "dependencies": ["feat-001"],
-      "status": "not-started",
-      "evidence": ""
+      "description": "Confirmar que falhas consecutivas no consumo de BetCreated/BetSettled vao para a Dead Letter Queue em vez de travar o stats-service ou perder a mensagem. Teste cross-service: derrubar stats-service, publicar eventos via bets-service, subir stats-service de novo, confirmar reprocessamento (mensagens acumuladas na fila, nao perdidas) - ver docs/services/infra.md secao 'Resiliencia: DLQ e retry automatico' para os diagramas de sequencia esperados. Nao cita RNF06: verificado no PDF do TCC1 em 2026-08-17 que a tabela original tem 6 RNFs e nenhum e sobre tolerancia a falha (RNF06 e Escalabilidade/volume). A base no TCC1 e a prosa da secao 4.1 (p.30) e do capitulo de arquitetura, que especificam retries + DLQ sem dar ID ao requisito - ver ../docs/REQUIREMENTS.md (nota apos a tabela de RNF) e ../docs/DECISIONS-LOG.md (2026-08-17). BLOQUEADO ate epic-004 (stats-service) e epic-005 (telegram-integration) da raiz estarem done - dependencia cross-repositorio, nao expressavel no campo 'dependencies' abaixo (que so referencia features deste mesmo repositorio/harness). Conferir feature_list.json da raiz antes de iniciar.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "done",
+      "plan_review": "2026-09-09, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o roteiro de execucao antes de qualquer acao. Veredito: READY WITH CONCERNS. Achados corrigidos no roteiro: (MAJOR) ADMIN_API_KEY precisa ser o mesmo valor nos .env de auth-service/bets-service/stats-service e PASETO_LOCAL_KEY precisa ser o mesmo em auth-service/api-gateway (reaproveitar o valor ja validado em teste, 93f681c1...4774bc7, em vez de gerar um novo) - sem isso os 3 POST /api/v1/admin/tenants ou a validacao do token no gateway falham; (MAJOR) toda chamada pos-login (catalogos, betting-house, criar/liquidar aposta) precisa ir por api-gateway:8080 com Bearer token, nunca direto nas portas 8081-8083 - so os 3 POST /admin/tenants (provisionamento) e as consultas a Management API do RabbitMQ ficam fora do gateway, porque BetsController exige X-User-Id (so o gateway injeta a partir do token); (MINOR) cenario DLQ (derrubar postgres-stats) deve fazer poll da Management API ate a mensagem estabilizar na fila/cair na DLQ, nao sleep fixo (HikariCP nao falha instantaneo). Evidencia coletada antes do plano: rotas confirmadas nos 4 servicos (AdminTenantController x3, BetsController com PATCH /{id}/status para liquidacao, catalogos em bets-service), portas fixas (auth 8081, bets 8082, stats 8083, gateway 8080 default), mvnw presente nos 4, root init.sh e infra/init.sh verdes nesta sessao. Rodada de desafio independente executada como passe proprio, sem subagente - independencia reduzida, declarada.",
+      "jira": "SV-261",
+      "subtasks": [
+        {
+          "id": "feat-002.1",
+          "name": "Ambiente: infra + 4 servicos Java no ar com segredos sincronizados",
+          "status": "done",
+          "jira": "SV-263",
+          "detail": "Sem ADMIN_API_KEY e PASETO_LOCAL_KEY identicos entre os servicos certos, nada mais no roteiro funciona.",
+          "checklist": [
+            "infra: cp .env.example .env, docker compose up -d, confirmar 6 containers healthy e rabbitmq-init aplicou a topologia.",
+            "Nos 4 servicos Java: cp .env.example .env; sincronizar ADMIN_API_KEY (mesmo valor) em auth-service/bets-service/stats-service; sincronizar PASETO_LOCAL_KEY (reaproveitar 93f681c1304df4c64f73a0df5c58c7eb097927246ad5b850247a97ef14774bc7, ja validado em teste) em auth-service/api-gateway.",
+            "Subir auth-service (8081), bets-service (8082), stats-service (8083), api-gateway (8080) via mvnw spring-boot:run, um de cada vez, checando o health do Actuator antes do proximo."
+          ],
+          "validation": "GET /actuator/health responde UP nos 4 servicos.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.2",
+          "name": "Provisionamento do tenant de teste + caso de controle",
+          "status": "done",
+          "jira": "SV-264",
+          "detail": "Baseline com stats-service saudavel antes de simular qualquer falha.",
+          "checklist": [
+            "3 chamadas admin manuais (POST /api/v1/admin/tenants em auth-service, bets-service, stats-service, X-Admin-Api-Key) provisionando o mesmo tenant nos 3 bancos.",
+            "Login via api-gateway (POST /api/v1/auth/login) para obter token; criar 1 betting house + catalogos minimos (sport/league/market/tipster) via api-gateway com Bearer token.",
+            "Registrar 1 aposta de controle via api-gateway com stats-service no ar; confirmar FACT_BET tem a linha e a fila stats.bet-events volta a 0 mensagens."
+          ],
+          "validation": "Aposta de controle aparece em FACT_BET sem intervencao manual.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.3",
+          "name": "Cenario retry: derrubar/subir stats-service sem perda de mensagem",
+          "status": "done",
+          "jira": "SV-265",
+          "detail": "Prova o fluxo descrito em docs/services/infra.md 'Consumo com retry automatico' + reprocessamento apos religar.",
+          "checklist": [
+            "Matar o processo do stats-service. Com ele fora do ar, registrar N apostas (BetCreated) e liquidar 1 (BetSettled, PATCH /{id}/status) via api-gateway.",
+            "Confirmar via RabbitMQ Management API (GET /api/queues/%2f/stats.bet-events) que as mensagens se acumulam (contagem = N+1) em vez de se perderem.",
+            "Subir stats-service de novo; confirmar que drena a fila sozinho (contagem volta a 0) e que FACT_BET tem as N+1 linhas corretas, sem duplicidade (PROCESSED_EVENT)."
+          ],
+          "validation": "Contagem de fila 0 apos religar + linhas de FACT_BET batendo com o que foi publicado durante a queda.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.4",
+          "name": "Cenario DLQ: falha consecutiva de consumo isola sem travar o fluxo",
+          "status": "done",
+          "jira": "SV-266",
+          "detail": "Prova o fluxo descrito em docs/services/infra.md 'Dead Letter Queue (DLQ)' - limite x-delivery-limit=3 na fila quorum stats.bet-events.",
+          "checklist": [
+            "Com stats-service no ar, parar postgres-stats (docker compose stop postgres-stats em infra/) para forcar falha deterministica de processamento sem tocar codigo.",
+            "Publicar 1 evento novo (registrar aposta); fazer poll da Management API ate a mensagem estabilizar/cair em stats.bet-events.dlq apos as reentregas.",
+            "Confirmar que o restante do fluxo (outras filas, outros tenants) nao trava enquanto isso - isolamento de falha.",
+            "Restaurar postgres-stats; documentar que a mensagem na DLQ exige reprocessamento manual (sem mecanismo automatico de replay ainda)."
+          ],
+          "validation": "Mensagem visivel em stats.bet-events.dlq via Management API; demais operacoes continuam respondendo durante a falha.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-002.5",
+          "name": "Evidencia, documentacao e fechamento",
+          "status": "done",
+          "jira": "SV-267",
+          "detail": "Registrar o resultado real (contagens, achados) e deixar o ambiente limpo para a proxima sessao.",
+          "checklist": [
+            "Preencher evidence em infra/feature_list.json (esta feature) e ../feature_list.json (epic-007) com contagens/resultados reais dos 4 cenarios.",
+            "Se a estrategia at-most-once da DLQ mostrar perda real de mensagem em algum passo, reabrir a decisao em ../docs/DECISIONS-LOG.md - caso contrario, so confirmar que continua valida.",
+            "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto no mesmo commit.",
+            "Encerrar os 4 processos Java, docker compose down -v em infra/, ./init.sh (raiz e infra) verdes."
+          ],
+          "owner": "agente"
+        }
+      ],
+      "evidence": "Fechada em 2026-09-10 (branch feature/SV-261, story SV-261, subtasks SV-263..267). Ambiente: infra + auth-service (8081)/bets-service (8082)/stats-service (8083)/api-gateway (8080) no ar, tenant de teste 'feat002test' provisionado nos 3 servicos por feat-002.2/feat-002.3; feat-002.4 provisionou um segundo tenant, 'feat002dlq', por nao ter a senha original de 'feat002test' registrada em nenhum artefato desta sessao (a senha temporaria de admin so aparece uma vez, na resposta do POST /admin/tenants). Cenario retry (feat-002.3): stats-service morto, 3 apostas registradas + 1 liquidada via api-gateway; rabbitmqctl confirmou 4 mensagens acumuladas em stats.bet-events (nao perdidas); apos religar, fila drenou para 0 e FACT_BET tem as 4 linhas corretas, sem duplicidade (PROCESSED_EVENT), aposta liquidada com upsert correto para status won. Cenario DLQ (feat-002.4): postgres-stats parado, 1 evento novo publicado; poll na Management API confirmou a mensagem presa em stats.bet-events por ~105s (3 tentativas de retry de aplicacao, cada uma bloqueada no connection-timeout de 30s do HikariCP contra o Postgres caido) ate cair em stats.bet-events.dlq com x-death reason=rejected; o registro sincrono da aposta via api-gateway devolveu 201 imediatamente mesmo com postgres-stats fora do ar (nao houve poll continuo de health durante os ~105s de retry, mas o health dos 3 servicos foi reconferido 200 logo apos a mensagem cair na DLQ), confirmando isolamento de falha (RN de consistencia eventual). Apos restaurar postgres-stats, stats-service voltou saudavel imediatamente mas a mensagem na DLQ nao foi reprocessada automaticamente (esperado, sem mecanismo de replay). Estrategia at-most-once da DLQ (docs/DECISIONS-LOG.md 2026-08-03) permanece valida - nenhum dos 2 cenarios mostrou perda de mensagem; nao reaberta. Achado real descoberto durante feat-002.1/tentativa inicial de subir stats-service, ja documentado em docs/OBSERVABILITY-AND-CONFIG.md e no commit 6002370: mvnw spring-boot:run nao le .env sem spring-dotenv, exige export manual das variaveis + SPRING_PROFILES_ACTIVE=dev. Achado real maior, descoberto ao vivo contra o broker real (RabbitMQ 4.3.5) durante a primeira tentativa do cenario DLQ: a partir do RabbitMQ 4.3, nack(requeue=true) deixou de contar para x-delivery-limit, o que travaria o consumidor para sempre em vez de isolar via DLQ - corrigido via retry de aplicacao em stats-service/feat-010 (spring.rabbitmq.listener.simple.retry), documentado em docs/DECISIONS-LOG.md/docs/API-CONTRACTS.md/docs/services/infra.md; o cenario deste feat-002.4 foi executado (e passou) contra a versao ja corrigida. Segundo achado real, descoberto montando o catalogo de teste: api-gateway nunca roteava /api/v1/tipsters/** (decisao deliberada de feat-007 que ficou obsoleta quando apps/web feat-008 ganhou a aba de tipsters, nunca revisitada) - corrigido em api-gateway/feat-008 (PR proprio naquele repositorio), documentado em docs/services/api-gateway.md. Ambiente encerrado ao final: 4 processos Java finalizados, 'docker compose down -v' em infra/, ./init.sh da raiz e de infra verdes. Delivery Reviewer (passe proprio, sem subagentes - mudanca so de documentacao/evidencia, risco baixo): 2 achados reais corrigidos antes de fechar - evidencia original alegava 'auth-service/bets-service/api-gateway responderam 200 o tempo todo' durante os ~105s de retry, mas so houve poll continuo do 201 sincrono no instante da publicacao e reconferencia de health apos a mensagem cair na DLQ, nao monitoramento continuo (texto corrigido aqui e em docs/services/infra.md); e a evidencia dizia que feat-002.2 'reaproveitou um tenant anterior', quando na verdade feat002test foi provisionado do zero por feat-002.2 (confirmado no commit 33d5e05) - feat-002.4 que provisionou um segundo tenant por nao ter a senha original registrada."
+    },
+    {
+      "id": "feat-003",
+      "name": "Bootstrap dos repositórios e setup do SonarCloud",
+      "description": "Setup que precede qualquer implementacao de servico (decisao do usuario, 2026-08-17). (a) Os 6 repositorios de aplicacao tem 'git init' e remote desde 2026-08-02 mas ZERO commits e nenhum .gitignore/.gitattributes - criar os dois por stack (Java/Maven, Python/uv, Angular/npm), commit inicial do harness em main, criar e publicar develop. (b) SonarCloud: organizacao, 6 projetos (chave = nome do repositorio, ex. sv-auth-backend), token como secret SONAR_TOKEN e org key como variable SONAR_ORGANIZATION em cada um dos 6 repositorios GitHub. infra/ nao usa SonarCloud (sem codigo de aplicacao). Risco central identificado antes do plan review: os 6 ci.yml disparam em 'push: [main, develop]' e os passos 2-5 (i18n, build, testes, Sonar) NAO tem guarda - um commit inicial so de harness deixaria os 6 repositorios com CI vermelha ate o feat-001 de cada servico. Ver docs/CI-CD.md e ../docs/DECISIONS-LOG.md (2026-08-17).",
+      "dependencies": [],
+      "status": "done",
+      "plan_review": "2026-08-17, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano antes de qualquer codigo. Veredito: REVISE. Achados corrigidos no plano antes da implementacao: (BLOCKER) actions/setup-node@v4 com 'cache: npm' FALHA o job quando nao existe package-lock.json (actions/setup-node#282) - a guarda por arquivo-marcador precisa cobrir tambem os steps de setup de toolchain, nao so os passos 2-5 como o plano original propunha; (BLOCKER) .github/scripts/validate-changelog.sh esta no indice do git como 100644, sem bit de execucao (confirmado em infra: 'git ls-files -s' + core.fileMode=false, padrao no Windows) - 'run: .github/scripts/validate-changelog.sh' quebraria com Permission denied no primeiro PR de qualquer repositorio; bug latente ja presente em infra, mascarado porque o step so roda em pull_request e nunca houve PR ali. Corrigido com 'git update-index --chmod=+x' nos 7 repositorios; (MAJOR) o plano nao resolvia o conflito entre a feature viver em infra/ e o trabalho acontecer em 6 outros repositorios: o commit inicial NAO pode seguir o modelo feature/subtask + PR (nao existe branch base num repositorio vazio) - decidido que o bootstrap dos 6 e commit direto em main, como foi em infra, e que a branch feature/<chave> vive so em infra/, levando as mudancas de harness; (MAJOR) plano nao previa atualizar docs/CI-CD.md (a guarda por marcador vira convencao nova) nem infra/CLAUDE.md (escopo declarado do harness hoje diz 'so orquestracao local e teste de resiliencia'); (MINOR) versoes de action defasadas - astral-sh/setup-uv@v3 (atual ~v10, tags minor removidas) e SonarSource/sonarqube-scan-action@v4 (atual ~v8); alem disso '-Dsonar.host.url' e desnecessario para SonarQube Cloud (doc oficial da action: 'SONAR_HOST_URL ... not needed for SonarQube Cloud'). Registrado como divida, nao corrigido aqui - nenhuma das duas actions chega a executar enquanto nao houver projeto; (MINOR) actions/setup-java com 'cache: maven' sem pom.xml gera warning de cache, nao falha - guarda aplicada por consistencia, nao por defeito. Verificado por evidencia: 'git ls-remote --heads origin' nos 6 confirma remoto vazio (push inicial nao sera rejeitado por non-fast-forward). Ordem validada: a guarda por marcador e o que torna seguro publicar main/develop ANTES de configurar SONAR_TOKEN - sem ela, o step 5 rodaria no push e falharia. Rodada de desafio independente executada como passes proprios (simulacao de execucao, implementacao fresca, analise adversarial), sem subagentes - independencia reduzida, declarada.",
+      "jira": "SV-1",
+      "subtasks": [
+        {
+          "id": "feat-003.1",
+          "name": "Impedir que a CI falhe em repositório sem código",
+          "status": "done",
+          "jira": "SV-2",
+          "detail": "Cada passo da pipeline passa a rodar só quando o projeto daquele repositório existe, e o validador de changelog ganha permissão de execução.",
+          "checklist": [
+            "Adicionar `if: hashFiles('<marcador>') != ''` aos passos 2–5 dos 6 workflows e também aos steps de setup de toolchain — `actions/setup-node` com `cache: npm` falha o job quando não há lockfile, não apenas pula.",
+            "Marcadores: `pom.xml` nos 4 serviços Java, `pyproject.toml` no telegram-integration, `package-lock.json` no web (o cache e o `npm ci` precisam do lock, não do manifesto).",
+            "Corrigir o modo de `.github/scripts/validate-changelog.sh` para 100755 nos 7 repositórios (`git update-index --chmod=+x`) — está 100644 e o workflow o invoca direto, o que quebraria o primeiro PR com Permission denied."
+          ],
+          "validation": "`yaml.safe_load` nos 7 workflows e `git ls-files -s .github/scripts/` mostrando 100755.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-003.2",
+          "name": "Adicionar .gitignore e .gitattributes aos 6 repositórios",
+          "status": "done",
+          "jira": "SV-3",
+          "detail": "Nenhum dos 6 tem os dois arquivos. Sem eles, o primeiro `git add -A` de cada serviço arrastaria `target/`, `node_modules/` ou `.venv/` para o repositório.",
+          "checklist": [
+            "`.gitignore` por stack: Maven (`target/`, `*.exec`), Python/uv (`.venv/`, `__pycache__/`, `.ruff_cache/`, `coverage.xml`), Angular (`node_modules/`, `dist/`, `.angular/`, `coverage/`).",
+            "Em todos: `.env` e caches de IDE/SO.",
+            "`.gitattributes` fixando LF em `.sh`, `.yml`, `.json` e `.properties` — checkout Windows gerando CRLF quebra script no runner Linux."
+          ],
+          "owner": "agente"
+        },
+        {
+          "id": "feat-003.3",
+          "name": "Publicar o commit inicial dos 6 repositórios",
+          "status": "done",
+          "jira": "SV-4",
+          "detail": "Commit direto em `main` — um repositório vazio não tem branch base, então não há PR possível para o commit inicial. Mesmo caminho já usado no infra.",
+          "checklist": [
+            "Em cada repositório: `git add -A` e commit em Conventional Commits, em inglês.",
+            "`git push -u origin main`.",
+            "Confirmar que o remote estava mesmo vazio antes (`git ls-remote --heads origin`), para o push não ser rejeitado por non-fast-forward."
+          ],
+          "validation": "Os 6 repositórios com `main` visível no GitHub e a Action do push concluída em verde.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-003.4",
+          "name": "Criar a branch develop nos 6 repositórios",
+          "status": "done",
+          "jira": "SV-5",
+          "detail": "`develop` é a base de todo trabalho e o destino dos PRs — precisa existir antes da primeira feature de qualquer serviço.",
+          "checklist": [
+            "`git checkout -b develop` e `git push -u origin develop` em cada repositório.",
+            "Conferir que a pipeline disparada pelo push termina verde, com os passos 2–5 marcados como skipped."
+          ],
+          "validation": "Aba Actions de cada repositório com execução verde; nenhum passo em vermelho.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-003.5",
+          "name": "Criar a organização e os projetos no SonarCloud",
+          "status": "done",
+          "jira": "SV-6",
+          "detail": "A análise de qualidade precisa existir do lado do SonarCloud antes de a pipeline conseguir enviar resultado.",
+          "checklist": [
+            "Criar a organização no SonarCloud vinculada à conta GitHub `eimmig`.",
+            "Criar 6 projetos, chave igual ao nome do repositório: sv-api-gateway, sv-auth-backend, sv-bets-backend, sv-stats-backend, sv-telegram-integration-backend, sv-frontend.",
+            "Não criar projeto para sv-infra-backend — esse repositório não tem código de aplicação e sua pipeline não chama o Sonar.",
+            "Gerar um token de análise e guardá-lo para a próxima subtarefa."
+          ],
+          "owner": "usuario"
+        },
+        {
+          "id": "feat-003.6",
+          "name": "Configurar as credenciais do Sonar nos 6 repositórios",
+          "status": "done",
+          "jira": "SV-7",
+          "detail": "Sem o token e a org key em cada repositório, o passo de análise falha por falta de credencial assim que o primeiro serviço tiver código.",
+          "checklist": [
+            "Em cada um dos 6 repositórios do GitHub: adicionar o secret `SONAR_TOKEN`.",
+            "Adicionar a variable `SONAR_ORGANIZATION` (não é secret — a org key não é sensível).",
+            "A organização é a mesma para os 6, mas a variable precisa ser configurada repositório por repositório: o GitHub não compartilha variables entre repositórios."
+          ],
+          "owner": "usuario"
+        },
+        {
+          "id": "feat-003.8",
+          "name": "Alinhar as chaves de projeto ao padrão do SonarCloud",
+          "detail": "Ao importar um repositório do GitHub, o SonarCloud gera a chave do projeto como `<org>_<repo>` — os workflows usam a forma sem prefixo, e a análise falharia com \"project not found\".",
+          "checklist": [
+            "Trocar `sonar.projectKey` nos 4 workflows Java para `eimmig_<repo>` (eimmig_sv-api-gateway, eimmig_sv-auth-backend, eimmig_sv-bets-backend, eimmig_sv-stats-backend).",
+            "Trocar `sonar.projectKey` nos dois `sonar-project.properties` (apps/web, services/telegram-integration) pela mesma forma.",
+            "Atualizar a tabela pasta → repositório de docs/CI-CD.md, que hoje diz que a chave do projeto é igual ao nome do repositório.",
+            "Renomear a chave na UI do SonarCloud é a alternativa descartada: seriam 6 edições manuais para divergir do padrão da própria ferramenta."
+          ],
+          "validation": "Análise do Sonar concluindo no primeiro serviço que tiver código (feat-001 do auth-service), sem erro de projeto inexistente.",
+          "owner": "agente",
+          "status": "done",
+          "jira": "SV-9"
+        },
+        {
+          "id": "feat-003.7",
+          "name": "Documentar a nova convenção e fechar o epic",
+          "status": "done",
+          "jira": "SV-8",
+          "detail": "A guarda por arquivo-marcador é uma convenção nova de CI e precisa estar escrita onde as próximas sessões vão procurar.",
+          "checklist": [
+            "docs/CI-CD.md: documentar a guarda por arquivo-marcador e qual é o marcador de cada stack.",
+            "infra/CLAUDE.md: registrar que esta feature é cross-repositório por natureza — o escopo declarado hoje fala só em orquestração local e teste de resiliência.",
+            "Preencher `evidence` em infra/feature_list.json e marcar epic-009 como done na raiz."
+          ],
+          "owner": "agente"
+        }
+      ],
+      "evidence": {
+        "resumo": "Entregue em 2026-08-17 (branch `feature/SV-1`, story SV-1 com 8 sub-tasks SV-2..SV-9).",
+        "secoes": [
+          {
+            "titulo": "Verificação real executada",
+            "itens": [
+              "Os 7 repositórios com `main` e `develop` publicados — 12 pushes, nenhum rejeitado, remotos conferidos vazios antes com `git ls-remote --heads origin`.",
+              "CI verde nos 6 repositórios em ambas as branches, confirmado com `gh run list` e, no `sv-frontend`, passo a passo com `gh run view --json jobs` — checkout em success e os 6 passos seguintes skipped, exatamente o efeito da guarda por arquivo-marcador.",
+              "Organização `eimmig` e os 6 projetos (`eimmig_sv-*`) confirmados via API do SonarCloud.",
+              "Secret `SONAR_TOKEN` e variable `SONAR_ORGANIZATION` gravados nos 6 repositórios e reconferidos com `python tools/sonar_setup.py --check`.",
+              "`./init.sh` da raiz e do infra passando (exit 0).",
+              "Os 6 `ci.yml` revalidados com `yaml.safe_load` após cada edição."
+            ]
+          },
+          {
+            "titulo": "Divergência do plano original",
+            "itens": [
+              "`feat-003.8` (SV-9), registrada como subtarefa nova em vez de correção silenciosa: alinhamento das chaves de projeto ao formato `<org>_<repo>` que o SonarCloud gera ao importar do GitHub — sem isso a primeira análise falharia com projeto inexistente."
+            ]
+          },
+          {
+            "titulo": "Defeitos encontrados antes de causar dano",
+            "itens": [
+              "Plan Reviewer, antes de qualquer código: `setup-node` com `cache: npm` falhando sem lockfile.",
+              "Plan Reviewer, antes de qualquer código: scripts `.sh` versionados sem bit de execução — bug latente que já existia no infra.",
+              "Durante a implementação: `init.sh` com o mesmo problema de modo."
+            ]
+          },
+          {
+            "titulo": "Skills e ferramentas",
+            "itens": [
+              "Plan Reviewer e Delivery Reviewer rodados.",
+              "Ferramenta nova instalada nesta feature: `gh` 2.97.0, sem a qual não havia como confirmar a CI."
+            ]
+          }
+        ]
+      },
+      "goal": "Deixar os 7 repositórios num estado em que a pipeline de CI roda de verdade — antes de qualquer serviço começar a ser implementado.",
+      "scope": [
+        "Os 6 repositórios de aplicação hoje têm remote configurado mas nenhum commit: ganham .gitignore/.gitattributes por stack, commit inicial em main e branch develop publicada.",
+        "Os 6 workflows de CI passam a pular seus passos enquanto o projeto não existe, em vez de falhar — hoje um repositório só com harness ficaria vermelho desde o primeiro push.",
+        "SonarCloud: organização, 6 projetos (chave = nome do repositório), token e org key configurados em cada repositório do GitHub.",
+        "infra/ não entra no SonarCloud — não tem código de aplicação para analisar."
+      ]
+    },
+    {
+      "id": "feat-004",
+      "name": "Migração para Kubernetes (fecha epic-010 da raiz) — alvo real de implantação do TCC 1",
+      "description": "docs/ARCHITECTURE.md e a nota de diagramas diziam que Kubernetes era 'meta citada no TCC mas fora do escopo do ambiente de desenvolvimento' - corrigido em 2026-09-08 (ver docs/DECISIONS-LOG.md), a pedido do usuario: o TCC 1 especifica Kubernetes como orquestracao de producao (Figura 5, secao 4.3.1), nao uma alternativa descartavel. docker-compose.yml (feat-001) continua sendo o ambiente de desenvolvimento local - nao e substituido, e sim complementado. Escopo final maior que o originalmente descrito aqui (decisoes do usuario via AskUserQuestion no inicio desta feature): manifests YAML puros (nao Helm) em k8s/, convertendo os componentes ja existentes no compose (3x PostgreSQL, RabbitMQ com a topologia versionada em rabbitmq/definitions.json, Redis, n8n) e adicionando Deployment/Service para os 4 servicos Java MAIS telegram-integration (Python, nunca tinha passado por docker-compose antes) + Ingress so para api-gateway. Dockerfile de cada um dos 5 servicos de aplicacao foi feito como feature propria em cada repositorio de servico, nao aqui (mesmo precedente de 'porta HTTP fixa') - ver auth-service feat-011, bets-service feat-013, stats-service feat-011, api-gateway feat-009, telegram-integration feat-007.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "done",
+      "plan_review": "2026-09-10. Nao um plan review formal de skill dedicada - 3 decisoes de escopo genuinamente em aberto (Dockerfile centralizado em infra vs por repositorio de servico; manifests YAML vs Helm; incluir telegram-integration no escopo agora ou deixar de fora) resolvidas com o usuario via AskUserQuestion antes de qualquer codigo, com recomendacao explicita em cada opcao e justificativa. Grounding real feito antes de escrever qualquer manifest: Docker Desktop Kubernetes nao estava habilitado nesta maquina (exige toggle na GUI, nao scriptavel) - kind + helm instalados via winget como alternativa 100% CLI (helm acabou nao sendo necessario, YAML puro venceu); imagens eclipse-temurin:25-jdk-alpine/25-jre-alpine confirmadas existentes via docker manifest inspect antes de escrever os Dockerfiles; portas/env vars de cada servico confirmadas lendo application.yml/.env.example reais (nao assumidas); pyproject.toml/ocr.py de telegram-integration lidos para descobrir a dependencia de tesseract-ocr-por (idioma 'por+eng') que so apareceria em runtime, nao em build. Rodada de desafio independente executada como passe proprio (self-review da propria evidence antes de commitar, ver 'Delivery Reviewer' abaixo) - independencia reduzida, declarada.",
+      "jira": "SV-262",
+      "subtasks": [
+        {
+          "id": "feat-004.1",
+          "name": "Dockerfiles dos 5 servicos de aplicacao (cross-repo, feature propria em cada um)",
+          "status": "done",
+          "jira": "SV-286"
+        },
+        {
+          "id": "feat-004.2",
+          "name": "Cluster kind + ingress-nginx + manifests de infra (Postgres x3, RabbitMQ+Job, Redis, n8n)",
+          "status": "done",
+          "jira": "SV-287"
+        },
+        {
+          "id": "feat-004.3",
+          "name": "Manifests dos 5 servicos de aplicacao + Ingress + verificacao end-to-end real",
+          "status": "done",
+          "jira": "SV-288"
+        },
+        {
+          "id": "feat-004.4",
+          "name": "Documentacao (CLAUDE.md, ARCHITECTURE.md, docs/services/infra.md) + CHANGELOG e verificacao final",
+          "status": "done",
+          "jira": "SV-289"
+        }
+      ],
+      "evidence": "Fechada em 2026-09-10. Cluster kind local (nao Docker Desktop Kubernetes, desabilitado nesta maquina) com ingress-nginx (manifest oficial da variante kind). 5 imagens locais construidas em cada repositorio de servico (feat-004.1) e carregadas via 'kind load docker-image' - imagePullPolicy: Never, sem registry. Manifests YAML puros em k8s/: postgres.yaml (3x Deployment+PVC+Service), rabbitmq.yaml (Deployment+PVC+Service+Job one-shot com initContainer busybox esperando a porta AMQP, sem depends_on/condition:service_healthy que nao existe no Kubernetes), redis.yaml, n8n.yaml, um arquivo por servico de aplicacao (auth-service/bets-service/stats-service/api-gateway/telegram-integration), ingress.yaml (so api-gateway - unico ponto de entrada publico, mesmo desenho do diagrama de implantacao do TCC1). secret.example.yaml versionado (placeholders) + secret.yaml real (gitignored, populado com os mesmos valores ja usados nos .env de cada servico) num unico Secret compartilhado (stakevault-secrets) - evita divergencia entre servicos que compartilham a mesma chave (ADMIN_API_KEY/PASETO_LOCAL_KEY/SERVICE_KEY). ConfigMap da topologia RabbitMQ gerado via 'kubectl create configmap --from-file' a partir dos MESMOS rabbitmq/definitions.json e apply-definitions.sh que o compose ja usa, nao uma copia YAML separada. Verificacao real, nao so 'kubectl get pods' verde: os 10 workloads (3 Postgres, RabbitMQ, Job de topologia, Redis, n8n, 4 servicos Java, telegram-integration) subiram healthy; job de topologia confirmado via log ('Topologia aplicada'); fluxo de negocio completo executado atraves do cluster - tenant provisionado via 'kubectl port-forward' nos 3 servicos (rotas admin continuam fora do Gateway por design, mesmo em K8s), login e registro de aposta via Ingress real (http://localhost:8888, porta mapeada em k8s/kind-config.yaml), FACT_BET e PROCESSED_EVENT conferidos dentro do pod postgres-stats via 'kubectl exec' - confirma bets-service publicando e stats-service consumindo o evento dentro do cluster; telegram-integration confirmado alcancavel internamente (pod efemero de teste, 200 em /health) mas sem Ingress (ClusterIP-only, residual de auth/rate-limit do servico continua valendo). Achados reais corrigidos antes de fechar: (1) autoreview pegou uma evidencia incorreta escrita no proprio telegram-integration/feat-007 alegando que docker-compose.yml ganharia o servico - corrigido, nenhum dos 4 servicos Java tambem esta no compose, so pecas de infra propriamente ditas, adicionar so o Python quebraria a convencao em vez de seguir 'paridade' com algo que nao existe; (2) cluster kind recriado uma vez, do zero (nada implantado ainda), porque a config inicial nao tinha extraPortMappings/node-label exigidos pelo guia oficial do ingress-nginx para kind. docker-compose.yml (infra/feat-001) NAO foi tocado - continua sendo o ambiente de dev local, agora complementado (nao substituido) pelo Kubernetes. Cluster kind deixado no ar ao final desta sessao para inspecao (`kubectl get pods` mostra os 10 workloads healthy) - removivel a qualquer momento com 'kind delete cluster --name stakevault', nao faz parte do estado do repositorio. ./init.sh da raiz e deste harness verdes (nao dependem de Kubernetes)."
+    },
+    {
+      "id": "feat-005",
+      "name": "Migrar manifests do kind local pro k3s de producao (Debian) + GHCR",
+      "goal": "Sair do cluster kind de teste (feat-004) pro k3s real no servidor Debian do usuario, puxando as 6 imagens de aplicacao do GHCR (privado) em vez de kind load, e servindo o frontend (web) pela primeira vez via Ingress - antes so o api-gateway era exposto.",
+      "scope": [
+        "6 manifests (api-gateway/auth-service/bets-service/stats-service/telegram-integration/web - web e novo) trocam image: de stakevault/*:local pra ghcr.io/eimmig/sv-*:latest, imagePullPolicy: Never -> Always, ganham imagePullSecrets: ghcr-pull",
+        "web.yaml novo (Deployment+Service) - nunca existiu manifest pra esse app",
+        "ingress.yaml dividido por path: /api pro api-gateway (rotas ja nascem com esse prefixo, sem rewrite), / (resto) pro web",
+        "Nao inclui k3s/ingress-nginx/secret stakevault-secrets/ghcr-pull em si - ja provisionados manualmente no servidor nesta sessao, fora do controle de versao deste repositorio (kind-config.yaml so serve o cluster kind antigo, mantido pra referencia)"
+      ],
+      "description": "Ate agora so o cluster kind local (feat-004) tinha sido verificado, com imagem carregada manualmente (kind load, imagePullPolicy: Never) - nao serve pra um servidor real, k3s puxa do registry de verdade. As 6 imagens ja publicam no GHCR desde as features de CI de cada repositorio de servico (api-gateway feat-011, auth-service feat-014, bets-service feat-015, stats-service feat-014, telegram-integration feat-009, web feat-013) - esta feature so conecta os manifests a elas.",
+      "dependencies": [
+        "feat-004"
+      ],
+      "status": "done",
+      "plan_review": "2026-09-11 - mudanca mecanica (troca de referencia de imagem + flag de pull + secret, sem logica nova) sobre manifests ja verificados ponta a ponta em feat-004. Unica decisao de design real: como o frontend (web, nunca exposto antes) compartilha o Ingress com api-gateway - resolvido por split de path (/api pro gateway, ja que toda rota de negocio documentada em docs/API-CONTRACTS.md nasce com esse prefixo sem precisar de rewrite; / pro web) em vez de host separado, mais simples pra um dominio ainda em aberto (sessao ainda decidindo Cloudflare Tunnel/DNS). Os 6 YAMLs validados com yaml.safe_load_all antes de aplicar. Risco residual: nenhuma verificacao real contra o k3s de producao ainda foi feita nesta revisao - fica pra validacao da propria subtask.",
+      "jira": "SV-351",
+      "subtasks": [
+        {
+          "id": "feat-005.1",
+          "name": "Atualizar 6 manifests + criar web.yaml + dividir ingress.yaml por path",
+          "detail": "Troca mecanica de imagem+pull nos 6 manifests de aplicacao, web.yaml novo, e ingress.yaml ganha o path /api explicito antes do / generico (ordem nao importa pro nginx ingress controller - ele ordena por especificidade de path, nao por ordem no arquivo, mas mantido nessa ordem por legibilidade).",
+          "checklist": [
+            "6 manifests: image ghcr.io/eimmig/sv-*, imagePullPolicy: Always, imagePullSecrets: ghcr-pull",
+            "web.yaml novo (Deployment+Service, porta 8080, sem env - apiGatewayUrl embutido no build)",
+            "ingress.yaml: /api -> api-gateway, / -> web",
+            "yaml.safe_load_all validando os 7 arquivos tocados"
+          ],
+          "validation": "kubectl apply -f infra/k8s/ real no k3s do servidor Debian; os 6 pods de aplicacao Running; curl no Ingress real confirma web servindo em / e api-gateway respondendo em /api.",
+          "owner": "agente",
+          "status": "done",
+          "jira": "SV-352"
+        },
+        {
+          "id": "feat-005.2",
+          "name": "CHANGELOG e verificacao final",
+          "detail": "Fechamento formal: CHANGELOG.md, verificacao real contra o k3s do servidor Debian (nao kind), e o item fixo de vault desta feature.",
+          "checklist": [
+            "Entrada em CHANGELOG.md (Unreleased)",
+            "kubectl apply real no servidor, pods Running confirmados",
+            "Fluxo real via Ingress (web em /, api-gateway em /api) confirmado",
+            "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto (nao docs/DECISIONS-LOG.md a menos que divirja do TCC1) no mesmo commit"
+          ],
+          "validation": "Fluxo real (cadastro/login/aposta) confirmado via Ingress do k3s de producao.",
+          "owner": "agente",
+          "status": "done",
+          "jira": "SV-353"
+        }
+      ],
+      "evidence": "Fechada em 2026-09-11. Verificacao real contra o k3s de producao (servidor Debian do usuario, nao kind): os 6 pods de aplicacao Running com 0 restart puxando imagem real do GHCR (ghcr-pull), Ingress dividido por path confirmado via curl real (200 em http://localhost/ - web; 405 em http://localhost/api/v1/auth/login - rota chegou ate auth-service, 405 esperado porque curl -I manda HEAD e o endpoint so aceita POST). 2 achados reais so descobertos no servidor de verdade (nunca no kind): (1) probes exec do RabbitMQ sem timeoutSeconds usavam o default de 1s, curto demais pro rabbitmq-diagnostics - causou 64 restarts em 25h e travou o Job rabbitmq-init pra sempre no initContainer; corrigido com timeoutSeconds: 10 nos 2 probes; (2) ConfigMap rabbitmq-definitions (gerado manual, nunca YAML versionado) precisa ser recriado em todo cluster novo - faltou no primeiro apply do k3s (cluster novo), sintoma so aparecia no kubectl describe pod do Job (MountVolume.SetUp failed), nao no kubectl get pods nem nos logs do RabbitMQ. Ambos documentados em docs/services/infra.md. Delivery Reviewer: PASS. ./init.sh do harness e da raiz verdes."
+    },
+    {
+      "id": "feat-006",
+      "name": "auth-service: env vars BETS_SERVICE_URL/STATS_SERVICE_URL (orquestracao de tenant)",
+      "goal": "Dar ao pod auth-service os enderecos internos de bets-service e stats-service para que a orquestracao de provisionamento de tenant (auth-service feat-015, reverte 3-chamadas-manuais pra 1 chamada em codigo) consiga de fato chamar os outros 2 servicos dentro do cluster.",
+      "scope": [
+        "k8s/auth-service.yaml ganha 2 env vars novas apontando pro Service ClusterIP interno de bets-service (porta 8082) e stats-service (porta 8083) - nao expõe nada novo externamente, so DNS interno do cluster"
+      ],
+      "description": "auth-service feat-015 (repositorio proprio) passou a chamar bets-service e stats-service via RestClient lendo tenant-provisioning.bets-service-url/stats-service-url de @Value, com binding de producao vindo de BETS_SERVICE_URL/STATS_SERVICE_URL (ver application.yml daquele servico). Sem essa env var no manifest do k3s, o pod sobe com a URL vazia/erro de binding - o deploy em si nao acompanhava mudanca de infra, so de codigo.",
+      "dependencies": [
+        "feat-005"
+      ],
+      "status": "done",
+      "plan_review": "2026-09-11 - mudanca mecanica de 1 manifest (2 linhas de env var apontando pro Service interno ja existente, ClusterIP padrao do k3s por nome), sem novo recurso, sem mudanca de rede/porta/imagem. Nao ha decisao de design real: o nome do Service e a porta ja sao publicos (bets-service:8082, stats-service:8083, definidos em k8s/bets-service.yaml e k8s/stats-service.yaml, ambos ja aplicados no cluster). Risco residual: exige rollout restart do pod auth-service no servidor real para pegar a env var nova junto da imagem nova (auth-service feat-015) - verificacao fica pra subtask unica.",
+      "jira": "SV-390",
+      "subtasks": [
+        {
+          "id": "feat-006.1",
+          "name": "Adicionar env vars + aplicar no cluster real + CHANGELOG",
+          "detail": "Unica subtask - mudanca pequena o suficiente pra nao justificar quebra em mais passos.",
+          "checklist": [
+            "k8s/auth-service.yaml: BETS_SERVICE_URL=http://bets-service:8082, STATS_SERVICE_URL=http://stats-service:8083",
+            "kubectl apply -f k8s/auth-service.yaml + kubectl rollout restart deployment auth-service no servidor Debian real",
+            "1 chamada admin real (POST /api/v1/admin/tenants so no auth-service) confirma downstreamProvisioningFailures vazio",
+            "Entrada em CHANGELOG.md (Unreleased)",
+            "Vault (docs/) revisado: alguma descoberta desta feature sem nota correspondente? Se sim, atualizar no mesmo commit"
+          ],
+          "validation": "curl real contra o Ingress do k3s de producao: 1 chamada admin cria tenant nos 3 servicos, downstreamProvisioningFailures:[] na resposta.",
+          "owner": "agente",
+          "status": "done",
+          "jira": "SV-391"
+        }
+      ],
+      "evidence": "Fechada em 2026-09-15. k8s/auth-service.yaml ja tinha as 2 env vars commitadas antes da sessao (b97dc3e); esta sessao trouxe a verificacao real que faltava contra o k3s de producao (servidor Debian, nao kind): SSH no servidor (~/infra em develop, 3 commits atras - git pull --ff-only trouxe b97dc3e/944c761), kubectl apply -f k8s/auth-service.yaml (deployment configured) + kubectl rollout restart deployment auth-service, rollout confirmado com kubectl rollout status (successfully rolled out) e kubectl exec no pod novo confirmando BETS_SERVICE_URL=http://bets-service:8082/STATS_SERVICE_URL=http://stats-service:8083 no ambiente. Verificacao de negocio: kubectl port-forward svc/auth-service 18081:8081 + 1 POST /api/v1/admin/tenants real (tenant novo feat006-verify, chave lida do Secret stakevault-secrets so no shell remoto, nunca impressa) respondeu downstreamProvisioningFailures: [] - confirma auth-service orquestrando bets-service e stats-service com sucesso dentro do cluster real. Mesma evidencia serve de fechamento para auth-service feat-015 (Review la, aguardando so essa prova de producao). ./init.sh deste harness e da raiz verdes."
+    },
+    {
+      "id": "feat-007",
+      "name": "ServiceAccount de CI com RBAC restrito + kubeconfig para deploy automatico (fecha epic-028 da raiz)",
+      "description": "Decisao do usuario em 2026-09-15 (epic-028 da raiz): em vez de ArgoCD/Flux (GitOps completo, descartado por desproporcional a um cluster de ambiente unico), CD automatico via CI simples - kubectl rollout restart depois que a imagem nova ja esta no GHCR (job build-and-push-image, epic-010). Esta feature cobre so a credencial/RBAC do lado do servidor: criar um ServiceAccount dedicado (ex. ci-deployer) com Role/RoleBinding restritos a get/patch/update em Deployments dos 6 servicos de aplicacao (nunca cluster-admin nem acesso a Secrets/outros namespaces), gerar o kubeconfig correspondente (token de longa duracao do ServiceAccount, nao o kubeconfig admin do operador) e documentar o processo de distribuir esse kubeconfig como secret KUBE_CONFIG nos 6 repositorios de aplicacao (cada repositorio precisa do proprio secret - GitHub nao compartilha secrets entre repositorios, mesmo padrao ja usado pra SONAR_TOKEN/SONAR_ORGANIZATION em docs/CI-CD.md 'Setup pendente'). Nao inclui o job de deploy em si no ci.yml de cada servico - isso e feature propria em cada repositorio (auth-service feat-016, bets-service feat-018, stats-service feat-019, api-gateway feat-014, telegram-integration feat-010, web feat-030), que depende do kubeconfig gerado aqui.",
+      "dependencies": [
+        "feat-004",
+        "feat-005"
+      ],
+      "status": "done",
+      "plan_review": "Plan Reviewer 2026-09-15: READY WITH CONCERNS pra autoria (manifest RBAC + script de distribuicao), BLOCKED pra aplicacao real. Achado MAJOR corrigido antes de escrever qualquer coisa: a description original pedia 'token de longa duracao do ServiceAccount' sem especificar o mecanismo - pesquisa contra a documentacao oficial do Kubernetes (kubernetes.io/docs/concepts/security/service-accounts, kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin) confirma que a forma legada (Secret manual tipo kubernetes.io/service-account-token, nunca expira sozinho) e desencorajada desde a 1.24 - a recomendacao atual pra cliente externo (CI, fora do cluster) e TokenRequest API via `kubectl create token <sa> --duration=<N>`, que ainda aceita duracao longa (ex. 8760h/1 ano) mas ao menos tem expiracao e e revogavel deletando o ServiceAccount. Adotado: `kubectl create token`, nao Secret estatica. Achado BLOCKER de ambiente, nao de plano: esta sessao nao tem conectividade com o cluster real (kubectl aponta pra um contexto kind-stakevault morto, kubectl cluster-info/get nodes/ate dry-run=client falham por falta de rede - client-side dry-run tambem baixa o schema OpenAPI de um cluster vivo nesta versao do kubectl) - o servidor real e um k3s de producao (Debian, infra/feat-005) que so o operador consegue alcancar. Decisao adotada: autorar tudo que nao precisa de cluster (manifest YAML versionado, script Python que roda contra o kubeconfig que o OPERADOR ja tem configurado - nunca uma credencial propria deste repositorio) e documentar claramente que aplicar/gerar token/distribuir secret precisa rodar numa maquina/sessao com acesso real, nunca fingir que rodou. Plano adotado: (1) k8s/ci-deployer-rbac.yaml - ServiceAccount ci-deployer + Role (so get/patch/update em Deployment, apiGroup apps, resourceNames explicito pros 6 Deployments de aplicacao - nao ClusterRole, nao acesso a Secret) + RoleBinding, mesmo padrao de comentario/estilo dos outros manifests em k8s/. (2) tools/kube_deploy_setup.py (raiz, mesmo padrao de tools/sonar_setup.py - REPOS = mesmos 6 repos, gh via GH_TOKEN ou git credential, nunca imprime o token): aplica o manifest, `kubectl create token ci-deployer --duration` (default 8760h), monta um kubeconfig minimo (server+CA do contexto atual do operador + o token novo, sem nenhum outro dado do kubeconfig pessoal dele) e grava via `gh secret set KUBE_CONFIG --repo <cada um dos 6>`. `--check` so confere conectividade/RBAC ja aplicado/quais repos ja tem o secret, sem gravar nada. (3) infra/CLAUDE.md ganha secao 'CD automatico (feat-007)' + bullet nas Regras especificas + item no DoD (init.sh so valida docker-compose, nao cobre k8s/ - checklist correto pra esta feature e `--check` do script); docs/services/infra.md ganha entrada correspondente; docs/CI-CD.md 'Setup pendente' ganha o par KUBE_CONFIG ao lado de SONAR_TOKEN. (4) CHANGELOG + feature_list.json (subtasks .1/.2 autoria - feito nesta sessao; subtask .3 aplicar/gerar/distribuir - explicitamente not-started, exige sessao com kubectl real; subtask .4 fechamento so depois de .3). Feature NAO fica done nesta sessao - so a parte que nao precisa de cluster.",
+      "jira": "SV-418",
+      "subtasks": [
+        {
+          "id": "feat-007.1",
+          "name": "Manifest RBAC (ServiceAccount + Role + RoleBinding restritos)",
+          "status": "done",
+          "jira": "SV-419"
+        },
+        {
+          "id": "feat-007.2",
+          "name": "Script de aplicacao/token/distribuicao (tools/kube_deploy_setup.py) + docs",
+          "status": "done",
+          "jira": "SV-420"
+        },
+        {
+          "id": "feat-007.3",
+          "name": "Aplicar RBAC + gerar token + distribuir KUBE_CONFIG nos 6 repos (exige kubectl real, operador)",
+          "status": "done",
+          "jira": "SV-421"
+        },
+        {
+          "id": "feat-007.4",
+          "name": "CHANGELOG e verificacao final",
+          "status": "done",
+          "jira": "SV-422"
+        }
+      ],
+      "evidence": "Fechada em 2026-09-15 (branch feature/SV-418, story SV-418, subtasks SV-419..422). k8s/ci-deployer-rbac.yaml (ServiceAccount ci-deployer + Role restrito a get/patch/update em Deployment, resourceNames explicito pros 6 Deployments de aplicacao, RoleBinding) e tools/kube_deploy_setup.py (raiz, mesmo padrao de tools/sonar_setup.py) autorados e revisados pelo Plan Reviewer - achado real corrigido antes de codificar: token via kubectl create token/TokenRequest API (duracao configuravel, default 8760h), nao a Secret estatica legada tipo kubernetes.io/service-account-token (desencorajada pela documentacao oficial do Kubernetes desde a 1.24). Bloqueio de ambiente real durante a autoria: a sessao que escreveu os arquivos nao tinha conectividade com o k3s de producao (kubectl apontando pra um kind local morto) - a tentativa de checar acesso via SSH foi recusada pelo classificador de auto mode do Claude Code (categoria Production Reads, nega acesso a producao sem autorizacao explicita do usuario na sessao) - comportamento correto, nao contornado. Usuario aplicou pessoalmente: tunel SSH (ssh -L 6443:127.0.0.1:6443 eduardo@192.168.2.123) + kubeconfig copiado do servidor (scp) + KUBECONFIG local, depois `python tools/kube_deploy_setup.py` a partir desta maquina. Resultado real confirmado no terminal do usuario: serviceaccount/ci-deployer, role.rbac.authorization.k8s.io/ci-deployer-role e rolebinding.rbac.authorization.k8s.io/ci-deployer-rolebinding criados no cluster real; token de 1 ano gerado; secret KUBE_CONFIG gravado com sucesso nos 6 repositorios de aplicacao (api-gateway/auth-service/bets-service/stats-service/telegram-integration/web) - confirmado por `--check` antes (todos NAO) e depois (todos sim). ./init.sh deste harness verde (so valida docker-compose.yml, nao cobre k8s/ - checklist correto pra esta feature especificamente foi o --check do script, ja confirmado). docs/services/infra.md, docs/CI-CD.md 'Setup pendente' e infra/CLAUDE.md (Regras especificas + secao 'Verificacao - CD automatico') atualizados no mesmo dia. Divergencia menor nao corrigida (fora do escopo desta feature): a description de epic-028 (raiz) menciona '-n <namespace>' no comando de rollout restart, mas os 6 Deployments de aplicacao nao tem namespace explicito (default). Fecha epic-028 do lado de infra/ - o job de deploy em si (kubectl rollout restart) em cada ci.yml fica pra feature propria em cada um dos 6 repositorios de aplicacao (auth-service feat-016, bets-service feat-018, stats-service feat-019, api-gateway feat-014, telegram-integration feat-010, web feat-030), todos agora desbloqueados pelo secret KUBE_CONFIG existir."
     }
   ]
 }

@@ -19,6 +19,8 @@ jobs:
 
       # 1. Changelog - ver docs/CI-CD.md (vault local, nao versionado neste repo)
       - name: Validar atualizacao do CHANGELOG.md
+        # Todo PR valida, inclusive subtask -> branch da story: cada subtarefa adiciona a
+        # propria linha em [Unreleased], que se acumula ate o merge em develop.
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

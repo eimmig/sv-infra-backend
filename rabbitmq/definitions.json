@@ -1,0 +1,73 @@
+{
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "exchanges": [
+    {
+      "name": "bets.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "bets.events.dlx",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "stats.bet-events",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "bets.events.dlx",
+        "x-delivery-limit": 3
+      }
+    },
+    {
+      "name": "stats.bet-events.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "bets.events",
+      "vhost": "/",
+      "destination": "stats.bet-events",
+      "destination_type": "queue",
+      "routing_key": "bet.created",
+      "arguments": {}
+    },
+    {
+      "source": "bets.events",
+      "vhost": "/",
+      "destination": "stats.bet-events",
+      "destination_type": "queue",
+      "routing_key": "bet.settled",
+      "arguments": {}
+    },
+    {
+      "source": "bets.events.dlx",
+      "vhost": "/",
+      "destination": "stats.bet-events.dlq",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    }
+  ]
+}

@@ -1,45 +1,46 @@
 # Session Handoff — infra
 
-## Current Objective
+> Estado atual, não histórico. O diário cronológico é o `progress.md` — este arquivo é reescrito
+> a cada sessão para responder "o que a próxima sessão precisa saber agora".
 
-- Goal: bootstrap the infra harness (new repo, created so epic-001/epic-007 — which have no
-  application service of their own — have a real repository, since the project root is not and
-  will not become a Git repository; see root `docs/DECISIONS-LOG.md` "Topologia").
-- Current status: harness created, no `docker-compose.yml` yet.
-- Branch / commit: (not committed yet)
+**Última atualização:** 2026-09-15
 
-## Completed This Session
+## Objetivo atual
 
-- [x] Created `CLAUDE.md`, `feature_list.json`, `init.sh`, `progress.md`, `session-handoff.md`,
-      `CHANGELOG.md`, `.github/workflows/ci.yml`, `.github/scripts/validate-changelog.sh`.
+`feat-001`..`feat-007` `done`. Nenhuma feature elegível neste harness agora. `epic-028` (raiz)
+segue `in-progress` — o lado de `infra/` fechou, falta a feature própria de deploy em cada um dos
+6 repositórios de aplicação (agora desbloqueadas pelo `KUBE_CONFIG` existir).
 
-## Verification Evidence
+## Concluído nesta sessão (2026-09-15)
 
-| Check | Command | Result | Notes |
-|---|---|---|---|
-| Build/test | `./init.sh` | not run yet (fails: no `docker-compose.yml`) | Expected — `feat-001` not started. |
+- [x] **`feat-007` fechada** (ServiceAccount de CI restrito + `KUBE_CONFIG` nos 6 repos, PR #6
+      merged em `develop`). `k8s/ci-deployer-rbac.yaml` + `tools/kube_deploy_setup.py` (raiz)
+      autorados e revisados (`Plan Reviewer` corrigiu o mecanismo de token — TokenRequest API,
+      não `Secret` estática legada). Aplicação real bloqueada nesta sessão pelo classificador de
+      auto-mode do Claude Code (categoria "Production Reads" — recusou até uma checagem SSH de
+      leitura, mesmo depois do usuário autorizar explicitamente no chat; é bloqueio de
+      configuração, não algo que se contorna pedindo de novo). **Usuário rodou pessoalmente**:
+      túnel SSH (`ssh -L 6443:127.0.0.1:6443 eduardo@192.168.2.123`) + kubeconfig copiado do
+      servidor (`scp`) + `python tools/kube_deploy_setup.py` desta máquina — `ServiceAccount`/
+      `Role`/`RoleBinding` criados no cluster real, token de 1 ano gerado, `KUBE_CONFIG` gravado
+      nos 6 repositórios (confirmado via `--check` antes/depois). Sessão fechou os 4 subtasks e a
+      feature depois, com a evidência real do usuário.
 
-## Files Changed
+## Bloqueios / Riscos
 
-- All files in this directory — created.
+- Nenhum.
 
-## Decisions Made
+## Próxima sessão — por onde começar
 
-- CI adapted: no i18n step, no SonarCloud — this repo has no user-facing text and no
-  application code to analyze. Only changelog check + `docker compose config` validation.
-
-## Blockers / Risks
-
-- `feat-002` (cross-service resilience test) blocked until `epic-004` (stats-service) and
-  `epic-005` (telegram-integration) are `done` at the root level — a cross-repository
-  dependency not expressible in this harness's own `feature_list.json`.
-
-## Next Session Startup
-
-1. Read `../CLAUDE.md` and `../docs/services/infra.md`.
-2. Read this directory's `CLAUDE.md`, `feature_list.json`, `progress.md`.
-3. Run `./init.sh`.
-
-## Recommended Next Step
-
-- Start `feat-001` (`docker-compose.yml`) — no dependencies, can start immediately.
+1. Rodar `./init.sh` (raiz e deste repositório) — deve sair `0`.
+2. Nenhuma feature pendente neste harness. `epic-028` (raiz) continua aberto — as 6 features de
+   deploy nos repositórios de aplicação (`auth-service feat-016`, `bets-service feat-018`,
+   `stats-service feat-019`, `api-gateway feat-014`, `telegram-integration feat-010`, `web
+   feat-030`) já podem começar, cada uma no seu próprio repositório/sessão.
+3. Se alguma sessão futura precisar tocar o cluster de produção de novo: o padrão que funcionou
+   foi túnel SSH local (`ssh -L 6443:127.0.0.1:6443 eduardo@192.168.2.123`) + kubeconfig copiado
+   via `scp` pra esta máquina — trocar o `server: https://127.0.0.1:6443` do kubeconfig pelo IP
+   direto do servidor NÃO funciona (certificado TLS do k3s só é válido pra `127.0.0.1`/
+   `localhost`), o túnel evita esse problema. Acesso de produção via Bash desta sessão (SSH
+   direto) é recusado pelo classificador de auto-mode — sempre vai precisar do usuário rodando
+   os comandos de rede/túnel pessoalmente, mesmo com autorização explícita no chat.

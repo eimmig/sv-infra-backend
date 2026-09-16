@@ -1,0 +1,157 @@
+# Tres instancias PostgreSQL, uma por servico de aplicacao (Database per Service - mesmo
+# isolamento de infra/docker-compose.yml, aqui como 3 Deployments/Services/PVCs distintos em
+# vez de 3 containers na mesma rede bridge). Sem StatefulSet: um unico pod cada, identidade de
+# rede ja vem do Service (nome DNS estavel), sem necessidade de indice ordinal/volume por
+# replica que justificasse o StatefulSet.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-auth }
+  template:
+    metadata:
+      labels: { app: postgres-auth }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports: [{ containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_DB, value: auth }
+            - { name: POSTGRES_USER, value: auth_user }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_AUTH_PASSWORD } }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "auth_user", "-d", "auth"] }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "auth_user", "-d", "auth"] }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: postgres-auth-data }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-auth-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-auth
+spec:
+  selector: { app: postgres-auth }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-bets
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-bets }
+  template:
+    metadata:
+      labels: { app: postgres-bets }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports: [{ containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_DB, value: bets }
+            - { name: POSTGRES_USER, value: bets_user }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_BETS_PASSWORD } }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "bets_user", "-d", "bets"] }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "bets_user", "-d", "bets"] }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: postgres-bets-data }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-bets-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-bets
+spec:
+  selector: { app: postgres-bets }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-stats
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: postgres-stats }
+  template:
+    metadata:
+      labels: { app: postgres-stats }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports: [{ containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_DB, value: stats }
+            - { name: POSTGRES_USER, value: stats_user }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_STATS_PASSWORD } }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "stats_user", "-d", "stats"] }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "stats_user", "-d", "stats"] }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: postgres-stats-data }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-stats-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-stats
+spec:
+  selector: { app: postgres-stats }
+  ports: [{ port: 5432, targetPort: 5432 }]
