@@ -489,7 +489,7 @@
         {
           "id": "feat-008.2",
           "name": "CHANGELOG, verificacao final e fechamento do epic-033 da raiz",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-581",
           "detail": "Ultimo harness - fecha o epic-033 da raiz quando esta subtask fechar.",
           "checklist": [
@@ -504,7 +504,7 @@
           "owner": "agente"
         }
       ],
-      "evidence": ""
+      "evidence": "2 subtasks (SV-580/581, story SV-579) done, PR #9 (SV-580) subtask->story + PR #10 (story->develop) + PR #11 (develop->main, promocao real) - todos CI verde. Job release adicionado sem passo de bump de manifest (repositorio sem pom.xml/package.json/pyproject.toml). Achado real critico, so descoberto na verificacao end-to-end de verdade (nem os 2 subagentes do plan review nem a pesquisa em auth-service feat-020 pegaram): ietf-tools/semver-action falha com 'Couldn't find the latest tag' quando o repositorio nao tem NENHUMA tag - o input fallbackTag, apesar do nome, PRECISA referenciar uma tag Git REAL ja existente (confirmado lendo o codigo-fonte da action, nao so o README, que e ambiguo nisso: 'the fallback tag must exist already' - so uma string semver valida sem tag real correspondente nao basta, a chamada compareCommitsWithBasehead do GitHub precisa resolver o ref de verdade). Corrigido criando uma tag bootstrap v0.0.0 no commit raiz de main (tag anotada, mensagem explicando o proposito) - mesma correcao aplicada nos outros 6 repositorios antes de promove-los, documentado tambem la. Rerun do job apos criar a tag: sucesso real - tag v0.1.0 criada (bump minor, feat presente no historico), GitHub Release 'Latest' visivel, commit chore(release): v0.1.0 [skip ci] (autor github-actions[bot]) empurrado pra main so com o diff do CHANGELOG.md (2 linhas - abertura do novo Unreleased + cabecalho da versao), sem loop de CI (so 1 commit de release, nao uma cascata). Fecha o ultimo harness do epic-033 da raiz - epic marcado done la."
     }
   ]
 }
