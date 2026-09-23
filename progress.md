@@ -233,3 +233,25 @@ só essa prova).
 
 `./init.sh` deste repositório e da raiz verdes. `docs/services/infra.md` (raiz) ganhou seção
 curta sobre o achado; `CHANGELOG.md` deste repositório ganhou entrada em `Added`.
+
+## Auditoria de marca StakeVault -> Arka — nenhuma mudança necessária (2026-09-23)
+
+Último harness na ordem sugerida de `epic-032` (raiz) - vault raiz, `apps/web`,
+`telegram-integration` e os 4 serviços Java já fechados. `grep -ril "stakevault"` (case-insensitive)
+achou 19 arquivos: `.env`/`.env.example`, `docker-compose.yml`, `CLAUDE.md`, `feature_list.json`/
+`CHANGELOG.md`/`progress.md`, os 11 manifests `k8s/*.yaml`. **Todas** as ocorrências reais são
+identificadores técnicos já cobertos pela decisão de 2026-09-23 (`docs/DECISIONS-LOG.md`, raiz) ou
+da mesma classe: nome do projeto/rede do `docker-compose` (`stakevault`/`stakevault-infra`),
+usuário RabbitMQ (`RABBITMQ_USER=stakevault`), nome do `Secret` k8s (`stakevault-secrets`,
+referenciado por todos os `Deployments`), nome do `Ingress` (`stakevault-ingress`), tags de imagem
+(`stakevault/<serviço>:local`). Nenhuma é prosa/metadado visível a um usuário final - diferente do
+`pom.xml <description>` dos 4 serviços Java, que era a única brecha real lá. `k8s/secret.yaml`
+(valores reais) confirmado não versionado (gitignored) - só o placeholder `secret.example.yaml`
+existe no repositório. `grep -rniE "stake|vault"` adicional (mesmo cuidado do achado de
+`apps/web feat-042`, wordmark partido em substring) não achou nada novo - os 2 hits eram "vault"
+do Obsidian, sem relação com a marca.
+
+**Conclusão: nenhuma mudança de código/config necessária neste harness** - decisão consistente
+com o próprio texto do `epic-032` ("cada harness que precisar de mudança real ganha feature
+granular própria"). Nenhuma feature aberta em `feature_list.json` deste repositório, nenhuma story
+no Jira - fecha `epic-032` (raiz), todos os 7 repositórios avaliados.

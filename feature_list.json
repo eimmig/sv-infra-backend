@@ -470,6 +470,41 @@
         }
       ],
       "evidence": "Fechada em 2026-09-15 (branch feature/SV-418, story SV-418, subtasks SV-419..422). k8s/ci-deployer-rbac.yaml (ServiceAccount ci-deployer + Role restrito a get/patch/update em Deployment, resourceNames explicito pros 6 Deployments de aplicacao, RoleBinding) e tools/kube_deploy_setup.py (raiz, mesmo padrao de tools/sonar_setup.py) autorados e revisados pelo Plan Reviewer - achado real corrigido antes de codificar: token via kubectl create token/TokenRequest API (duracao configuravel, default 8760h), nao a Secret estatica legada tipo kubernetes.io/service-account-token (desencorajada pela documentacao oficial do Kubernetes desde a 1.24). Bloqueio de ambiente real durante a autoria: a sessao que escreveu os arquivos nao tinha conectividade com o k3s de producao (kubectl apontando pra um kind local morto) - a tentativa de checar acesso via SSH foi recusada pelo classificador de auto mode do Claude Code (categoria Production Reads, nega acesso a producao sem autorizacao explicita do usuario na sessao) - comportamento correto, nao contornado. Usuario aplicou pessoalmente: tunel SSH (ssh -L 6443:127.0.0.1:6443 eduardo@192.168.2.123) + kubeconfig copiado do servidor (scp) + KUBECONFIG local, depois `python tools/kube_deploy_setup.py` a partir desta maquina. Resultado real confirmado no terminal do usuario: serviceaccount/ci-deployer, role.rbac.authorization.k8s.io/ci-deployer-role e rolebinding.rbac.authorization.k8s.io/ci-deployer-rolebinding criados no cluster real; token de 1 ano gerado; secret KUBE_CONFIG gravado com sucesso nos 6 repositorios de aplicacao (api-gateway/auth-service/bets-service/stats-service/telegram-integration/web) - confirmado por `--check` antes (todos NAO) e depois (todos sim). ./init.sh deste harness verde (so valida docker-compose.yml, nao cobre k8s/ - checklist correto pra esta feature especificamente foi o --check do script, ja confirmado). docs/services/infra.md, docs/CI-CD.md 'Setup pendente' e infra/CLAUDE.md (Regras especificas + secao 'Verificacao - CD automatico') atualizados no mesmo dia. Divergencia menor nao corrigida (fora do escopo desta feature): a description de epic-028 (raiz) menciona '-n <namespace>' no comando de rollout restart, mas os 6 Deployments de aplicacao nao tem namespace explicito (default). Fecha epic-028 do lado de infra/ - o job de deploy em si (kubectl rollout restart) em cada ci.yml fica pra feature propria em cada um dos 6 repositorios de aplicacao (auth-service feat-016, bets-service feat-018, stats-service feat-019, api-gateway feat-014, telegram-integration feat-010, web feat-030), todos agora desbloqueados pelo secret KUBE_CONFIG existir."
+    },
+    {
+      "id": "feat-008",
+      "name": "CI: gerar versao (semver + tag + Release + corte de CHANGELOG) ao merge em main",
+      "description": "7o e ultimo harness do epic-033 da raiz - mesmo mecanismo ja validado em auth-service feat-020 (ver aquele feature_list.json pro plan review completo, 2 subagentes independentes, pesquisa real), sem o passo de bump de manifest de pacote (este repositorio nao tem pom.xml/package.json/pyproject.toml - so docker-compose.yml/k8s manifests, sem versionamento de artefato proprio). Escopo: tag Git + GitHub Release + corte do CHANGELOG.md, sem bump de nenhum arquivo alem do proprio CHANGELOG.md. Este repositorio tambem nao tem os jobs build-and-push-image/deploy dos outros 6 (sem imagem Docker propria) - o job 'release' e adicionado sozinho, needs: pipeline.",
+      "dependencies": [],
+      "status": "in-progress",
+      "plan_review": "2026-09-23, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado uma vez em auth-service feat-020 (REVISE, 2 achados corrigidos: commit: explicito no release-action, persist-credentials:false) - reaproveitado aqui sem nova rodada. Unica adaptacao real: sem manifest pra bumpar, o commit de release so toca CHANGELOG.md - se nao houver nada novo desde o ultimo corte (guarda 'git diff --cached --quiet' ja prevista), o job so cria a tag/Release sem commit novo.",
+      "jira": "SV-579",
+      "subtasks": [
+        {
+          "id": "feat-008.1",
+          "name": "Job 'release' no ci.yml + .github/scripts/cut-changelog.py",
+          "status": "done",
+          "jira": "SV-580"
+        },
+        {
+          "id": "feat-008.2",
+          "name": "CHANGELOG, verificacao final e fechamento do epic-033 da raiz",
+          "status": "not-started",
+          "jira": "SV-581",
+          "detail": "Ultimo harness - fecha o epic-033 da raiz quando esta subtask fechar.",
+          "checklist": [
+            "Entrada em CHANGELOG.md (Unreleased)",
+            "./init.sh deste repositorio e da raiz verdes",
+            "Delivery Reviewer rodado sobre o diff real desta feature",
+            "Verificacao real: push de teste em main confirma job 'release' rodando (tag/Release criados, sem loop de CI)",
+            "feature_list.json da raiz: epic-033 status done, evidencia preenchida (todos os 7 repositorios)",
+            "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto (nao docs/DECISIONS-LOG.md a menos que divirja do TCC 1) no mesmo commit"
+          ],
+          "validation": "Push real em main confirmado no GitHub Actions (job release verde, tag/Release visiveis no repositorio), init.sh verde, Delivery Reviewer sem achado real pendente, evidence preenchida, epic-033 done na raiz.",
+          "owner": "agente"
+        }
+      ],
+      "evidence": ""
     }
   ]
 }
