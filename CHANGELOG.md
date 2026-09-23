@@ -43,3 +43,6 @@ CI (ver `docs/CI-CD.md`).
 - [SV-420](https://stakevault.atlassian.net/browse/SV-420) - Script de aplicacao/token/distribuicao (tools/kube_deploy_setup.py) + docs
 - [SV-421](https://stakevault.atlassian.net/browse/SV-421) - Aplicar RBAC + gerar token + distribuir KUBE_CONFIG nos 6 repos (exige kubectl real, operador)
 - [SV-422](https://stakevault.atlassian.net/browse/SV-422) - CHANGELOG e verificacao final
+- [SV-579](https://stakevault.atlassian.net/browse/SV-579) - CI: gerar versao (semver + tag + Release + corte de CHANGELOG) ao merge em main
+- [SV-580](https://stakevault.atlassian.net/browse/SV-580) - Job 'release' no ci.yml + .github/scripts/cut-changelog.py
+- [SV-581](https://stakevault.atlassian.net/browse/SV-581) - CHANGELOG, verificacao final e fechamento do epic-033 da raiz
