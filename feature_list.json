@@ -476,7 +476,7 @@
       "name": "CI: gerar versao (semver + tag + Release + corte de CHANGELOG) ao merge em main",
       "description": "7o e ultimo harness do epic-033 da raiz - mesmo mecanismo ja validado em auth-service feat-020 (ver aquele feature_list.json pro plan review completo, 2 subagentes independentes, pesquisa real), sem o passo de bump de manifest de pacote (este repositorio nao tem pom.xml/package.json/pyproject.toml - so docker-compose.yml/k8s manifests, sem versionamento de artefato proprio). Escopo: tag Git + GitHub Release + corte do CHANGELOG.md, sem bump de nenhum arquivo alem do proprio CHANGELOG.md. Este repositorio tambem nao tem os jobs build-and-push-image/deploy dos outros 6 (sem imagem Docker propria) - o job 'release' e adicionado sozinho, needs: pipeline.",
       "dependencies": [],
-      "status": "in-progress",
+      "status": "done",
       "plan_review": "2026-09-23, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado uma vez em auth-service feat-020 (REVISE, 2 achados corrigidos: commit: explicito no release-action, persist-credentials:false) - reaproveitado aqui sem nova rodada. Unica adaptacao real: sem manifest pra bumpar, o commit de release so toca CHANGELOG.md - se nao houver nada novo desde o ultimo corte (guarda 'git diff --cached --quiet' ja prevista), o job so cria a tag/Release sem commit novo.",
       "jira": "SV-579",
       "subtasks": [
