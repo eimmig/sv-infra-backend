@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Gera cert/key self-signed com SAN de IP para servir HTTPS no ingress-nginx do k3s de
-# producao (192.168.2.123, acessado direto por IP na LAN, sem dominio/DNS). Nao usar em
-# producao real com dominio publico (ali o caminho e Let's Encrypt via cert-manager, nao
-# self-signed) — isto existe so porque o acesso hoje e por IP puro na rede local.
-#
 # Uso: ./generate-dev-cert.sh [IP]  (default: 192.168.2.123, o servidor k3s atual — ver
-# docs/services/infra.md "Migracao pro k3s de producao")
 set -euo pipefail
 cd "$(dirname "$0")"
 

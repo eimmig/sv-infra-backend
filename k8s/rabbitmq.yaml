@@ -1,7 +1,3 @@
-# RabbitMQ + Job one-shot que aplica a topologia (rabbitmq/definitions.json - mesmo arquivo
-# usado por docker-compose, montado aqui via ConfigMap em vez de bind mount). Sem
-# depends_on/condition: service_healthy do compose - o Job usa um initContainer que espera a
-# porta AMQP responder antes de rodar o mesmo apply-definitions.sh de sempre.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -59,13 +55,6 @@ spec:
     - { name: amqp, port: 5672, targetPort: 5672 }
     - { name: management, port: 15672, targetPort: 15672 }
 ---
-# O ConfigMap "rabbitmq-definitions" NAO esta neste arquivo de proposito: embedar
-# rabbitmq/definitions.json e rabbitmq/apply-definitions.sh como texto YAML duplicaria os
-# arquivos que docker-compose.yml ja usa (bind mount) e divergiria se um mudasse sem o outro.
-# Gerar (idempotente) a partir dos mesmos 2 arquivos, sempre antes do restante deste diretorio:
-#   kubectl create configmap rabbitmq-definitions \
-#     --from-file=rabbitmq/definitions.json --from-file=rabbitmq/apply-definitions.sh \
-#     --dry-run=client -o yaml | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job
 metadata:

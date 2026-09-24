@@ -1,5 +1,3 @@
-# Cache do stats-service (cache-aside), uso exclusivo dele - mesmo papel de
-# infra/docker-compose.yml.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

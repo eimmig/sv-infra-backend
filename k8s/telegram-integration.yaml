@@ -1,11 +1,3 @@
-# Imagem publicada no GHCR (ghcr.io/eimmig/sv-telegram-integration-backend,
-# services/telegram-integration/feat-009, job build-and-push-image no ci.yml daquele
-# repositorio) - pacote privado, exige imagePullSecrets (ghcr-pull, criado uma vez via
-# `kubectl create secret docker-registry` com um PAT classico escopo read:packages - ver
-# infra/CLAUDE.md secao Kubernetes). ClusterIP-only, sem Ingress: so n8n (mesmo cluster) fala
-# com este servico - residual de auth/rate-limit em POST /bets/capture, /telegram/link,
-# /telegram-accounts (aceito em services/telegram-integration/n8n/README.md) continua valendo
-# porque a internet nunca alcanca este pod diretamente.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

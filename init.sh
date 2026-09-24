@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Verification for infra (Docker Compose).
 set -euo pipefail
 
 if ! command -v docker >/dev/null 2>&1; then
