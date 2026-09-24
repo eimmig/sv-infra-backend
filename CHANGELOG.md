@@ -8,6 +8,9 @@ CI (ver `docs/CI-CD.md`).
 ## [Unreleased]
 
 - Remover todos os comentários restantes do código, testes e configuração (convenção de zero comentário, `docs/convencoes.md`)
+
+## [0.1.0] - 2026-09-23
+
 - `docker-compose.yml` com a infraestrutura local completa (`feat-001`, fecha `epic-001`): 3x
   PostgreSQL, RabbitMQ 4, Redis, n8n, todos com healthcheck
 - Topologia RabbitMQ versionada em `rabbitmq/definitions.json` (exchange/fila/DLQ)
