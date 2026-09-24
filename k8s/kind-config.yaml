@@ -1,7 +1,3 @@
-# Config do cluster kind (nao um manifest do Kubernetes - consumido por `kind create cluster`,
-# nao por `kubectl apply`). extraPortMappings + node label seguem o guia oficial do
-# ingress-nginx para kind (https://kind.sigs.k8s.io/docs/user/ingress/) - sem isso, o Ingress
-# nao tem porta do host mapeada e nao seria alcancavel de fora do cluster.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

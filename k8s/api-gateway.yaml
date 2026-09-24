@@ -1,9 +1,3 @@
-# Imagem publicada no GHCR (ghcr.io/eimmig/sv-api-gateway, services/api-gateway/feat-011,
-# job build-and-push-image no ci.yml daquele repositorio) - pacote privado, exige
-# imagePullSecrets (ghcr-pull, criado uma vez via `kubectl create secret docker-registry`
-# com um PAT classico escopo read:packages - ver infra/CLAUDE.md secao Kubernetes). Unico
-# servico exposto via Ingress (ver ingress.yaml) - ponto unico de entrada HTTP publico,
-# mesmo desenho do diagrama de implantacao do TCC1 (API Gateway + Load Balancer/Ingress).
 apiVersion: apps/v1
 kind: Deployment
 metadata:

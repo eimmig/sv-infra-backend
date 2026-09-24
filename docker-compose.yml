@@ -1,21 +1,6 @@
-# Infraestrutura compartilhada do ambiente de desenvolvimento local.
-# Ver docs/services/infra.md (componentes e diagramas de resiliencia) e
-# docs/ARCHITECTURE.md (Database per Service, DLQ desde o inicio).
-#
-# Este arquivo NAO declara nenhum servico de aplicacao (auth-service, bets-service,
-# stats-service, api-gateway, telegram-integration, web) — cada um vive no seu
-# proprio repositorio e entra no seu proprio epic.
-#
-# Nenhuma variavel tem valor default: sem .env o `up` falha em vez de subir com
-# credencial conhecida. Copie .env.example para .env antes de subir.
-
 name: stakevault-infra
 
 services:
-  # --- PostgreSQL: um container por servico (Database per Service) ---------
-  # Instancias distintas, nao bancos distintos no mesmo servidor: nenhum servico
-  # tem sequer conectividade com o Postgres do outro. Dentro de cada banco ainda
-  # ha isolamento por schema por tenant (ver docs/DATA-MODEL.md).
   postgres-auth:
     image: postgres:17-alpine
     environment:
@@ -27,7 +12,6 @@ services:
     volumes:
       - postgres-auth-data:/var/lib/postgresql/data
     healthcheck:
-      # CMD-SHELL (nao exec form): so o shell expande $$POSTGRES_USER.
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
@@ -71,7 +55,6 @@ services:
       start_period: 30s
     networks: [stakevault]
 
-  # --- RabbitMQ: broker entre bets-service (produtor) e stats-service ------
   rabbitmq:
     image: rabbitmq:4-management-alpine
     environment:
@@ -90,9 +73,6 @@ services:
       start_period: 60s
     networks: [stakevault]
 
-  # Container one-shot: aplica exchanges/filas/bindings depois que o broker esta
-  # healthy. Ver rabbitmq/apply-definitions.sh para por que a topologia nao e
-  # carregada via `load_definitions`.
   rabbitmq-init:
     image: curlimages/curl:8.11.1
     depends_on:
@@ -108,7 +88,6 @@ services:
     restart: "no"
     networks: [stakevault]
 
-  # --- Redis: cache do stats-service (Cache-Aside), nenhum outro servico ---
   redis:
     image: redis:7-alpine
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
@@ -126,10 +105,6 @@ services:
       start_period: 15s
     networks: [stakevault]
 
-  # --- n8n: recebe o webhook do bot Telegram e aciona telegram-integration --
-  # Nao depende de nenhum servico acima: o fluxo documentado e webhook -> n8n ->
-  # rotina Python -> POST /api/v1/bets no api-gateway (ver
-  # docs/services/telegram-integration.md). n8n nunca fala com o broker.
   n8n:
     image: docker.n8n.io/n8nio/n8n:1.100.0
     environment:

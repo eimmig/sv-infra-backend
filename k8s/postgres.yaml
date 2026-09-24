@@ -1,8 +1,3 @@
-# Tres instancias PostgreSQL, uma por servico de aplicacao (Database per Service - mesmo
-# isolamento de infra/docker-compose.yml, aqui como 3 Deployments/Services/PVCs distintos em
-# vez de 3 containers na mesma rede bridge). Sem StatefulSet: um unico pod cada, identidade de
-# rede ja vem do Service (nome DNS estavel), sem necessidade de indice ordinal/volume por
-# replica que justificasse o StatefulSet.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
