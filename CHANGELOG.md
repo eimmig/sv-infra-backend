@@ -7,6 +7,8 @@ CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-24
+
 - Remover todos os comentários restantes do código, testes e configuração (convenção de zero comentário, `docs/convencoes.md`)
 
 ## [0.1.0] - 2026-09-23
