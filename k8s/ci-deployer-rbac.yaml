@@ -1,10 +1,3 @@
-# ServiceAccount de CI restrito, sem acesso de administrador do cluster - usado pelo job de
-# deploy (kubectl rollout restart) que cada um dos 6 repositorios de aplicacao ganha em
-# ci.yml (auth-service feat-016, bets-service feat-018, stats-service feat-019, api-gateway
-# feat-014, telegram-integration feat-010, web feat-030), fecha epic-028 da raiz. So get/patch/
-# update em Deployment, so nos 6 Deployments de aplicacao (resourceNames explicito) - nunca
-# Secrets, nunca outro namespace, nunca ClusterRole. Ver infra/CLAUDE.md secao "CD automatico
-# (feat-007)" para o procedimento de gerar o token e distribuir como secret KUBE_CONFIG.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
