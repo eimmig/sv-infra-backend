@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: stats-service }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:

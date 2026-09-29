@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: bets-service }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:

@@ -15,7 +15,7 @@ jobs:
 
       # 1. Changelog
       - name: Validar atualizacao do CHANGELOG.md
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && (github.base_ref == 'develop' || github.base_ref == 'main')
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
