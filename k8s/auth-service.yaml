@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: auth-service }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:
@@ -31,6 +32,9 @@ spec:
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: PASETO_LOCAL_KEY } }
             - { name: BETS_SERVICE_URL, value: "http://bets-service:8082" }
             - { name: STATS_SERVICE_URL, value: "http://stats-service:8083" }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           readinessProbe:
             httpGet: { path: /actuator/health, port: 8081 }
             initialDelaySeconds: 15

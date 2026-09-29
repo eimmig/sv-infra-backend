@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: web }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:
@@ -17,6 +18,9 @@ spec:
           image: ghcr.io/eimmig/sv-frontend:latest
           imagePullPolicy: Always
           ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 25m, memory: 32Mi, ephemeral-storage: 64Mi }
+            limits: { cpu: 100m, memory: 128Mi, ephemeral-storage: 256Mi }
           readinessProbe:
             httpGet: { path: /, port: 8080 }
             initialDelaySeconds: 5

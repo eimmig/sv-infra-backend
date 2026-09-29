@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: rabbitmq }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: rabbitmq
           image: rabbitmq:4-management-alpine
@@ -21,6 +22,9 @@ spec:
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_USER } }
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
             - { name: data, mountPath: /var/lib/rabbitmq }
           readinessProbe:
@@ -64,10 +68,14 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      automountServiceAccountToken: false
       initContainers:
         - name: wait-for-rabbitmq
           image: busybox:1.37
           command: ["sh", "-c", "until nc -z rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done"]
+          resources:
+            requests: { cpu: 10m, memory: 16Mi, ephemeral-storage: 32Mi }
+            limits: { cpu: 50m, memory: 64Mi, ephemeral-storage: 128Mi }
       containers:
         - name: apply-definitions
           image: curlimages/curl:8.11.1
@@ -77,6 +85,9 @@ spec:
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_USER } }
             - name: RABBITMQ_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_PASSWORD } }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi, ephemeral-storage: 32Mi }
+            limits: { cpu: 50m, memory: 64Mi, ephemeral-storage: 128Mi }
           volumeMounts:
             - { name: definitions, mountPath: /definitions.json, subPath: definitions.json }
             - { name: definitions, mountPath: /scripts/apply-definitions.sh, subPath: apply-definitions.sh }

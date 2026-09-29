@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: bets-service }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:
@@ -33,6 +34,9 @@ spec:
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_USER } }
             - name: RABBITMQ_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           readinessProbe:
             httpGet: { path: /actuator/health, port: 8082 }
             initialDelaySeconds: 15
