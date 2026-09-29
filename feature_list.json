@@ -539,9 +539,9 @@
         {
           "id": "feat-009.2",
           "name": "automountServiceAccountToken:false em todos os pod specs",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-666",
-          "detail": "Fecha kubernetes:S6865 (13 issues) - nenhum pod do cluster usa client Kubernetes (so o ServiceAccount ci-deployer, usado pela CI externa via kubeconfig, nunca por um pod do cluster).",
+          "detail": "Fecha kubernetes:S6865 (13 issues) - nenhum pod do cluster usa client Kubernetes (so o ServiceAccount ci-deployer, usado pela CI externa via kubeconfig, nunca por um pod do cluster). Achado real durante a implementacao: infra/ci.yml validava CHANGELOG.md em TODO pull_request (sem guarda de base_ref develop/main, diferente dos outros 6 repositorios) - primeira vez que o fluxo subtask->story->develop de multiplas subtasks foi exercitado de verdade neste repositorio expos o gap (CHANGELOG.md ja carrega a linha de toda subtask desde a criacao da story via jira_story.py, entao um PR de subtask nunca tem diff novo naquele arquivo e sempre reprovava). Corrigido: guarda de base_ref adicionada, alinhando com o padrao documentado em docs/pipeline-ci-cd.md.",
           "checklist": [
             "spec.template.spec.automountServiceAccountToken: false em todos os 10 Deployments (api-gateway/auth-service/bets-service/stats-service/telegram-integration/web/n8n/postgres-auth/postgres-bets/postgres-stats/rabbitmq/redis - confirmar contagem real 11 ou 12 Deployments ao editar).",
             "Mesmo campo no Job rabbitmq-init (k8s/rabbitmq.yaml) - achado do plan review, facil de esquecer."
@@ -552,7 +552,7 @@
         {
           "id": "feat-009.3",
           "name": "Corrigir shell (shelldre:S7688) + resolver tag :latest como accept (decisao do epic-028)",
-          "status": "not-started",
+          "status": "in-progress",
           "jira": "SV-667",
           "detail": "Fecha shelldre:S7688 (3 issues, fix real) e kubernetes:S6596 (6 issues, accept documentado - pinar a tag quebraria o mecanismo de CD do epic-028).",
           "checklist": [
