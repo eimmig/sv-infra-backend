@@ -552,7 +552,7 @@
         {
           "id": "feat-009.3",
           "name": "Corrigir shell (shelldre:S7688) + resolver tag :latest como accept (decisao do epic-028)",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-667",
           "detail": "Fecha shelldre:S7688 (3 issues, fix real) e kubernetes:S6596 (6 issues, accept documentado - pinar a tag quebraria o mecanismo de CD do epic-028).",
           "checklist": [
@@ -567,7 +567,7 @@
         {
           "id": "feat-009.4",
           "name": "Onboarding real do infra no gate SonarCloud (fecha a causa raiz) + fechamento",
-          "status": "not-started",
+          "status": "in-progress",
           "jira": "SV-668",
           "detail": "Hoje infra/ nao tem NENHUM gate de CI pro SonarCloud (nem scanner, nem secrets) apesar do projeto ja existir la - por isso os 80 achados nunca foram vistos. Fecha a causa raiz, nao so o sintoma.",
           "checklist": [
