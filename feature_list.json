@@ -567,7 +567,7 @@
         {
           "id": "feat-009.4",
           "name": "Onboarding real do infra no gate SonarCloud (fecha a causa raiz) + fechamento",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-668",
           "detail": "Hoje infra/ nao tem NENHUM gate de CI pro SonarCloud (nem scanner, nem secrets) apesar do projeto ja existir la - por isso os 80 achados nunca foram vistos. Fecha a causa raiz, nao so o sintoma.",
           "checklist": [
