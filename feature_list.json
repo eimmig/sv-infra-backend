@@ -505,6 +505,85 @@
         }
       ],
       "evidence": "2 subtasks (SV-580/581, story SV-579) done, PR #9 (SV-580) subtask->story + PR #10 (story->develop) + PR #11 (develop->main, promocao real) - todos CI verde. Job release adicionado sem passo de bump de manifest (repositorio sem pom.xml/package.json/pyproject.toml). Achado real critico, so descoberto na verificacao end-to-end de verdade (nem os 2 subagentes do plan review nem a pesquisa em auth-service feat-020 pegaram): ietf-tools/semver-action falha com 'Couldn't find the latest tag' quando o repositorio nao tem NENHUMA tag - o input fallbackTag, apesar do nome, PRECISA referenciar uma tag Git REAL ja existente (confirmado lendo o codigo-fonte da action, nao so o README, que e ambiguo nisso: 'the fallback tag must exist already' - so uma string semver valida sem tag real correspondente nao basta, a chamada compareCommitsWithBasehead do GitHub precisa resolver o ref de verdade). Corrigido criando uma tag bootstrap v0.0.0 no commit raiz de main (tag anotada, mensagem explicando o proposito) - mesma correcao aplicada nos outros 6 repositorios antes de promove-los, documentado tambem la. Rerun do job apos criar a tag: sucesso real - tag v0.1.0 criada (bump minor, feat presente no historico), GitHub Release 'Latest' visivel, commit chore(release): v0.1.0 [skip ci] (autor github-actions[bot]) empurrado pra main so com o diff do CHANGELOG.md (2 linhas - abertura do novo Unreleased + cabecalho da versao), sem loop de CI (so 1 commit de release, nao uma cascata). Fecha o ultimo harness do epic-033 da raiz - epic marcado done la."
+    },
+    {
+      "id": "feat-009",
+      "name": "Corrigir 80 apontamentos reais do SonarCloud nos manifests k8s/scripts + fechar a lacuna de nunca terem sido gateados",
+      "goal": "Fechar os 80 apontamentos reais e abertos do SonarCloud (kubernetes:*/shelldre:S7688) em infra, e fechar a lacuna de CI que permitiu que se acumulassem sem gate nenhum.",
+      "scope": "resources (cpu/memory/ephemeral-storage requests+limits) e automountServiceAccountToken:false em todos os 11 manifests com container; correcao dos 3 achados de shell; as 6 issues de tag :latest resolvidas como accept via API (decisao arquitetural do epic-028, nao bug); onboarding real do infra no gate SonarCloud (secrets + step de CI), reaproveitando o padrao de push-scope ja corrigido em auth-service feat-022.",
+      "description": "Achado real do usuario (2026-09-29), parte do epic-038 da raiz: SonarCloud (API consultada diretamente) mostra 80 issues MAJOR abertos no projeto eimmig_sv-infra-backend - kubernetes:S6596 (6x, tag latest), kubernetes:S6865 (13x, automountServiceAccountToken), kubernetes:S6864/S6892/S6873 (13x cada, memory limit/CPU request/memory request faltando), kubernetes:S6897/S6870 (13x/6x, ephemeral-storage request/limit faltando), shelldre:S7688 (3x, [ ] em vez de [[ ]] em init.sh:10 e .github/scripts/validate-changelog.sh:7). Causa raiz confirmada: infra/ci.yml nunca chamou SonarCloud (decisao original documentada - 'sem codigo de aplicacao pra analisar'), mas o projeto existe no SonarCloud (8 analises, analise manual/automatica fora do harness) - nunca gateado por nada, nenhum apontamento jamais visto. Achado de escopo: a tag :latest nos 6 servicos de aplicacao (api-gateway/auth-service/bets-service/stats-service/telegram-integration/web) e decisao arquitetural deliberada do epic-028 (mecanismo de CD via kubectl rollout restart + imagePullPolicy:Always, sem reaplicar manifest) - pinar quebraria o CD, nao sera corrigido, sera resolvido como 'accept' via API do SonarCloud com comentario. Backlog granular abaixo, 4 subtasks - fecha a parte infra do epic-038 da raiz.",
+      "dependencies": [],
+      "status": "in-progress",
+      "plan_review": "2026-09-29, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano antes de qualquer codigo. Veredito: READY WITH CONCERNS, 2 MINOR: (1) SonarCloud migrou a taxonomia de resolucao de issue - 'wontfix' (nome legado) e 'accept' (nome atual, alinhado ao Clean Code taxonomy que a propria API ja devolve em cada issue) coexistem como transicoes validas; usar 'accept', nao 'wontfix'. (2) automountServiceAccountToken:false precisa ser aplicado tambem no Job rabbitmq-init (k8s/rabbitmq.yaml), nao so nos 10 Deployments - facil de esquecer por nao ser um Deployment. Valores de resources (cpu/memory/ephemeral-storage) confirmados como estimativa razoavel pra este projeto (TCC, cluster unico, sem medicao real disponivel) - nao e decisao que precise voltar pro usuario, reversivel/ajustavel depois. Escopo do item 4 (onboarding real do infra no gate SonarCloud) confirmado proporcional - projeto ja existe no SonarCloud, so falta secrets+step de CI, mesmo padrao ja corrigido em auth-service feat-022 (push so pra main, nunca develop - API recusa branch != main com 403).",
+      "jira": "SV-664",
+      "subtasks": [
+        {
+          "id": "feat-009.1",
+          "name": "resources (CPU/memory/ephemeral-storage requests+limits) em todos os containers",
+          "status": "in-progress",
+          "jira": "SV-665",
+          "detail": "Fecha kubernetes:S6864/S6892/S6873/S6897/S6870 (58 issues) - nenhum container/initContainer dos 11 manifests declara resources hoje.",
+          "checklist": [
+            "api-gateway/auth-service/bets-service/stats-service.yaml (Java/Spring): requests cpu=100m memory=256Mi ephemeral-storage=128Mi, limits cpu=500m memory=512Mi ephemeral-storage=512Mi.",
+            "telegram-integration.yaml (Python/FastAPI): requests cpu=50m memory=128Mi ephemeral-storage=128Mi, limits cpu=250m memory=256Mi ephemeral-storage=512Mi.",
+            "web.yaml (nginx estatico): requests cpu=25m memory=32Mi ephemeral-storage=64Mi, limits cpu=100m memory=128Mi ephemeral-storage=256Mi.",
+            "n8n.yaml: requests cpu=100m memory=256Mi ephemeral-storage=128Mi, limits cpu=500m memory=512Mi ephemeral-storage=512Mi.",
+            "postgres.yaml (3 Deployments - auth/bets/stats): cada um requests cpu=100m memory=256Mi ephemeral-storage=128Mi, limits cpu=500m memory=512Mi ephemeral-storage=512Mi.",
+            "rabbitmq.yaml (Deployment principal): requests cpu=100m memory=256Mi ephemeral-storage=128Mi, limits cpu=500m memory=512Mi ephemeral-storage=512Mi.",
+            "rabbitmq.yaml (Job rabbitmq-init, initContainer wait-for-rabbitmq + container apply-definitions): requests cpu=10m memory=16Mi ephemeral-storage=32Mi, limits cpu=50m memory=64Mi ephemeral-storage=128Mi, nos dois.",
+            "redis.yaml: requests cpu=50m memory=64Mi ephemeral-storage=64Mi, limits cpu=250m memory=256Mi ephemeral-storage=256Mi."
+          ],
+          "validation": "docker compose config nao se aplica (k8s) - validar com kubectl apply --dry-run=client -f k8s/ (ou kubeval/yamllint) se cluster disponivel; grep -L resources: k8s/*.yaml deve retornar so ci-deployer-rbac.yaml e ingress.yaml.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-009.2",
+          "name": "automountServiceAccountToken:false em todos os pod specs",
+          "status": "not-started",
+          "jira": "SV-666",
+          "detail": "Fecha kubernetes:S6865 (13 issues) - nenhum pod do cluster usa client Kubernetes (so o ServiceAccount ci-deployer, usado pela CI externa via kubeconfig, nunca por um pod do cluster).",
+          "checklist": [
+            "spec.template.spec.automountServiceAccountToken: false em todos os 10 Deployments (api-gateway/auth-service/bets-service/stats-service/telegram-integration/web/n8n/postgres-auth/postgres-bets/postgres-stats/rabbitmq/redis - confirmar contagem real 11 ou 12 Deployments ao editar).",
+            "Mesmo campo no Job rabbitmq-init (k8s/rabbitmq.yaml) - achado do plan review, facil de esquecer."
+          ],
+          "validation": "grep -L automountServiceAccountToken k8s/*.yaml deve retornar so ci-deployer-rbac.yaml e ingress.yaml.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-009.3",
+          "name": "Corrigir shell (shelldre:S7688) + resolver tag :latest como accept (decisao do epic-028)",
+          "status": "not-started",
+          "jira": "SV-667",
+          "detail": "Fecha shelldre:S7688 (3 issues, fix real) e kubernetes:S6596 (6 issues, accept documentado - pinar a tag quebraria o mecanismo de CD do epic-028).",
+          "checklist": [
+            "init.sh:10 - [ -f \"docker-compose.yml\" ] vira [[ -f \"docker-compose.yml\" ]].",
+            "validate-changelog.sh:7 - os 2 testes [ ] no mesmo if viram [[ ]].",
+            "Para as 6 issues kubernetes:S6596 (tag latest): POST /api/issues/{key}/do_transition com transition=accept + comentario explicando a dependencia do mecanismo de CD (epic-028: kubectl rollout restart + imagePullPolicy:Always, sem reaplicar manifest - pinar a tag exigiria reescrever o CD pra atualizar+reaplicar manifest a cada deploy).",
+            "docs/pipeline-ci-cd.md ou docs/services/infra.md: documentar a decisao de accept pra tag latest."
+          ],
+          "validation": "bash -n nos 2 scripts editados; GET /api/issues/search?componentKeys=eimmig_sv-infra-backend&rules=kubernetes:S6596&resolved=false deve retornar total=0 apos o accept.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-009.4",
+          "name": "Onboarding real do infra no gate SonarCloud (fecha a causa raiz) + fechamento",
+          "status": "not-started",
+          "jira": "SV-668",
+          "detail": "Hoje infra/ nao tem NENHUM gate de CI pro SonarCloud (nem scanner, nem secrets) apesar do projeto ja existir la - por isso os 80 achados nunca foram vistos. Fecha a causa raiz, nao so o sintoma.",
+          "checklist": [
+            "sonar-project.properties na raiz de infra/ (sonar.projectKey=eimmig_sv-infra-backend, sonar.organization, sonar.sources=k8s,.github - mesmo padrao de web/telegram-integration).",
+            "ci.yml: novo step SonarSource/sonarqube-scan-action (ou mvn-like scanner generico) + .github/scripts/validate-sonar-issues.py (copiar dos outros repos) - rodando em pull_request e em push so pra main (nunca develop - API recusa branch != main com 403, ja aprendido em auth-service feat-022), continue-on-error em push.",
+            "tools/sonar_setup.py (raiz sv-harness): incluir infra na tabela REPOS, remover o comentario 'de proposito fora'.",
+            "Rodar tools/sonar_setup.py pra configurar SONAR_TOKEN/SONAR_ORGANIZATION no repositorio infra real.",
+            "CHANGELOG.md: entrada em [Unreleased].",
+            "Vault (docs/): confirmar docs/pipeline-ci-cd.md atualizado (setup pendente concluido pra infra, tabela de repositorios com Sonar).",
+            "Vault (docs/): alguma descoberta desta feature sem nota correspondente? Se sim, atualizar/criar a nota do assunto no mesmo commit."
+          ],
+          "validation": "PR real no repositorio infra mostra o step SonarCloud rodando; GET /api/issues/search?componentKeys=eimmig_sv-infra-backend&resolved=false&ps=1 retorna total=0 (ou so as 6 aceitas, que somem de resolved=false) apos o merge.",
+          "owner": "agente"
+        }
+      ],
+      "evidence": ""
     }
   ]
 }

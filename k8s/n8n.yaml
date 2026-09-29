@@ -19,6 +19,9 @@ spec:
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: N8N_ENCRYPTION_KEY } }
             - { name: N8N_PORT, value: "5678" }
             - { name: GENERIC_TIMEZONE, value: America/Sao_Paulo }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
             - { name: data, mountPath: /home/node/.n8n }
           readinessProbe:
