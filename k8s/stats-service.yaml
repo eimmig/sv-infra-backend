@@ -37,6 +37,9 @@ spec:
             - { name: REDIS_PORT, value: "6379" }
             - name: REDIS_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: REDIS_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           readinessProbe:
             httpGet: { path: /actuator/health, port: 8083 }
             initialDelaySeconds: 15

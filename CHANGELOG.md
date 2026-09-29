@@ -8,6 +8,11 @@ CI (ver `docs/CI-CD.md`).
 ## [Unreleased]
 
 - Remover todos os comentários restantes do código, testes e configuração (convenção de zero comentário, `docs/convencoes.md`)
+- [SV-664](https://stakevault.atlassian.net/browse/SV-664) - Corrigir 80 apontamentos reais do SonarCloud nos manifests k8s/scripts + fechar a lacuna de nunca terem sido gateados
+- [SV-665](https://stakevault.atlassian.net/browse/SV-665) - resources (CPU/memory/ephemeral-storage requests+limits) em todos os containers
+- [SV-666](https://stakevault.atlassian.net/browse/SV-666) - automountServiceAccountToken:false em todos os pod specs
+- [SV-667](https://stakevault.atlassian.net/browse/SV-667) - Corrigir shell (shelldre:S7688) + resolver tag :latest como accept (decisao do epic-028)
+- [SV-668](https://stakevault.atlassian.net/browse/SV-668) - Onboarding real do infra no gate SonarCloud (fecha a causa raiz) + fechamento
 
 ## [0.1.0] - 2026-09-23
 

@@ -17,6 +17,9 @@ spec:
           image: ghcr.io/eimmig/sv-api-gateway:latest
           imagePullPolicy: Always
           ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           env:
             - { name: SPRING_PROFILES_ACTIVE, value: dev }
             - name: PASETO_LOCAL_KEY
