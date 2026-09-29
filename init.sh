@@ -7,7 +7,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 echo "OK   $(docker --version)"
 
-if [ -f "docker-compose.yml" ]; then
+if [[ -f "docker-compose.yml" ]]; then
   echo "OK   docker-compose.yml detected"
   if ! docker compose config >/dev/null 2>&1; then
     echo "FAIL docker-compose.yml exists but is not valid (docker compose config)"
