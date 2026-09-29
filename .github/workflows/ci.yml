@@ -25,6 +25,31 @@ jobs:
       - name: Validar docker-compose.yml
         run: docker compose config
 
+      # 3. SonarCloud
+      - name: SonarCloud
+        if: (github.event_name == 'pull_request' && (github.base_ref == 'develop' || github.base_ref == 'main')) || (github.event_name == 'push' && github.ref_name == 'main')
+        uses: SonarSource/sonarqube-scan-action@v4
+        continue-on-error: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.host.url=https://sonarcloud.io
+            ${{ github.event_name != 'push' && '-Dsonar.qualitygate.wait=true' || '' }}
+
+      # 4. Gate de issue/hotspot do SonarCloud
+      - name: Validar zero issues no SonarCloud
+        if: (github.event_name == 'pull_request' && (github.base_ref == 'develop' || github.base_ref == 'main')) || (github.event_name == 'push' && github.ref_name == 'main')
+        continue-on-error: ${{ github.event_name == 'push' }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >
+          python3 .github/scripts/validate-sonar-issues.py
+          --project-key eimmig_sv-infra-backend
+          ${{ github.event_name == 'pull_request' && format('--pull-request {0}', github.event.pull_request.number) || format('--branch {0}', github.ref_name) }}
+
   release:
     needs: pipeline
     if: github.event_name == 'push' && github.ref_name == 'main'
