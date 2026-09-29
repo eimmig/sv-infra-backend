@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: api-gateway }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:

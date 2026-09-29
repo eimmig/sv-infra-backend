@@ -520,7 +520,7 @@
         {
           "id": "feat-009.1",
           "name": "resources (CPU/memory/ephemeral-storage requests+limits) em todos os containers",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-665",
           "detail": "Fecha kubernetes:S6864/S6892/S6873/S6897/S6870 (58 issues) - nenhum container/initContainer dos 11 manifests declara resources hoje.",
           "checklist": [
@@ -539,7 +539,7 @@
         {
           "id": "feat-009.2",
           "name": "automountServiceAccountToken:false em todos os pod specs",
-          "status": "not-started",
+          "status": "in-progress",
           "jira": "SV-666",
           "detail": "Fecha kubernetes:S6865 (13 issues) - nenhum pod do cluster usa client Kubernetes (so o ServiceAccount ci-deployer, usado pela CI externa via kubeconfig, nunca por um pod do cluster).",
           "checklist": [

@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: rabbitmq }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: rabbitmq
           image: rabbitmq:4-management-alpine
@@ -67,6 +68,7 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      automountServiceAccountToken: false
       initContainers:
         - name: wait-for-rabbitmq
           image: busybox:1.37

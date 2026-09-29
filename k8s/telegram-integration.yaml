@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: telegram-integration }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:

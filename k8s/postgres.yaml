@@ -10,6 +10,7 @@ spec:
     metadata:
       labels: { app: postgres-auth }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: postgres:17-alpine
@@ -64,6 +65,7 @@ spec:
     metadata:
       labels: { app: postgres-bets }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: postgres:17-alpine
@@ -118,6 +120,7 @@ spec:
     metadata:
       labels: { app: postgres-stats }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: postgres:17-alpine
