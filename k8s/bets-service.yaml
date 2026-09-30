@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: bets-service
 spec:
-  replicas: 1
   selector:
     matchLabels: { app: bets-service }
   template:

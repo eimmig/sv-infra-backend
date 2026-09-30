@@ -694,7 +694,7 @@
         {
           "id": "feat-011.2",
           "name": "Remover replicas dos 4 Deployments com HPA",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-721",
           "detail": "kubectl apply manual reaplicaria replicas:1 por cima do HPA.",
           "checklist": [

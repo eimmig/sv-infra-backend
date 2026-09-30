@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: stats-service
 spec:
-  replicas: 1
   selector:
     matchLabels: { app: stats-service }
   template:
