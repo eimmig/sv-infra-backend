@@ -7,6 +7,7 @@ CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
 
+- `docker-compose.yml` e manifests `k8s/` sobem PostgreSQL 18 (`postgres:18-alpine`, volume em `/var/lib/postgresql`) e Redis 8 (`redis:8-alpine`) (`feat-010`)
 - Remover todos os comentários restantes do código, testes e configuração (convenção de zero comentário, `docs/convencoes.md`)
 - [SV-664](https://stakevault.atlassian.net/browse/SV-664) - Corrigir 80 apontamentos reais do SonarCloud nos manifests k8s/scripts + fechar a lacuna de nunca terem sido gateados
 - [SV-665](https://stakevault.atlassian.net/browse/SV-665) - resources (CPU/memory/ephemeral-storage requests+limits) em todos os containers
