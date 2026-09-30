@@ -185,6 +185,13 @@ Pré-requisito: as imagens `stakevault/<serviço>:local` já construídas (`dock
 cada `services/<serviço>/`, ver o `CLAUDE.md` daquele repositório) — este harness só as
 referencia, nunca as constrói.
 
+**PostgreSQL 18 e Redis 8 (`feat-010`)**: as imagens são `postgres:18-alpine` e `redis:8-alpine`.
+O PG18 grava os dados em `/var/lib/postgresql/18/docker`, então o volume (compose) e o PVC (k8s)
+montam `/var/lib/postgresql`, não `/var/lib/postgresql/data`. Volume ou PVC criado com PG17 fica
+**órfão** (o PG18 inicializa um cluster novo e vazio ao lado, o antigo permanece em `data/`):
+depois de trocar a imagem num ambiente já existente, os tenants precisam ser reprovisionados
+(`POST /api/v1/admin/tenants`) ou o volume antigo migrado com `pg_dump`/`pg_upgrade` antes.
+
 ```bash
 # 1. Cluster local (kind, não Docker Desktop Kubernetes — ver nota acima)
 kind create cluster --name stakevault --config k8s/kind-config.yaml
