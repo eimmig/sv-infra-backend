@@ -13,6 +13,15 @@ CI (ver `docs/CI-CD.md`).
 - [SV-666](https://stakevault.atlassian.net/browse/SV-666) - automountServiceAccountToken:false em todos os pod specs
 - [SV-667](https://stakevault.atlassian.net/browse/SV-667) - Corrigir shell (shelldre:S7688) + resolver tag :latest como accept (decisao do epic-028)
 - [SV-668](https://stakevault.atlassian.net/browse/SV-668) - Onboarding real do infra no gate SonarCloud (fecha a causa raiz) + fechamento
+- [SV-715](https://stakevault.atlassian.net/browse/SV-715) - Subir PostgreSQL 17->18 e Redis 7->8 (compose + k8s)
+- [SV-716](https://stakevault.atlassian.net/browse/SV-716) - docker-compose: postgres:18-alpine e redis:8-alpine
+- [SV-717](https://stakevault.atlassian.net/browse/SV-717) - k8s: postgres.yaml (x3) e redis.yaml
+- [SV-718](https://stakevault.atlassian.net/browse/SV-718) - CHANGELOG e verificacao final
+- [SV-719](https://stakevault.atlassian.net/browse/SV-719) - HPAs para api-gateway, auth-service, bets-service e stats-service
+- [SV-720](https://stakevault.atlassian.net/browse/SV-720) - k8s/hpa.yaml com os 4 HPAs
+- [SV-721](https://stakevault.atlassian.net/browse/SV-721) - Remover replicas dos 4 Deployments com HPA
+- [SV-722](https://stakevault.atlassian.net/browse/SV-722) - Documentar apply e verificacao
+- [SV-723](https://stakevault.atlassian.net/browse/SV-723) - CHANGELOG e verificacao final
 
 ## [0.1.0] - 2026-09-23
 
