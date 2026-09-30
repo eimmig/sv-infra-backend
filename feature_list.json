@@ -613,7 +613,7 @@
         {
           "id": "feat-010.2",
           "name": "k8s: postgres.yaml (x3) e redis.yaml",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-717",
           "detail": "Mesma troca nos manifests do k3s de producao.",
           "checklist": [
