@@ -7,6 +7,7 @@ CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
 
+- `k8s/hpa.yaml`: HorizontalPodAutoscaler (CPU 70%, 1 a 4 réplicas) para `api-gateway`, `auth-service`, `bets-service` e `stats-service`; `replicas` removido dos 4 Deployments (`feat-011`)
 - `docker-compose.yml` e manifests `k8s/` sobem PostgreSQL 18 (`postgres:18-alpine`, volume em `/var/lib/postgresql`) e Redis 8 (`redis:8-alpine`) (`feat-010`)
 - Remover todos os comentários restantes do código, testes e configuração (convenção de zero comentário, `docs/convencoes.md`)
 - [SV-664](https://stakevault.atlassian.net/browse/SV-664) - Corrigir 80 apontamentos reais do SonarCloud nos manifests k8s/scripts + fechar a lacuna de nunca terem sido gateados

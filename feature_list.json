@@ -673,14 +673,14 @@
         "feat-010",
         "services/stats-service:feat-027"
       ],
-      "status": "not-started",
+      "status": "done",
       "plan_review": "2026-09-30, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano de infra (imagens PG18/Redis 8 + HPAs). Veredito: REVISE (Parte B) / READY WITH CONCERNS (Parte A). Achados absorvidos nas subtasks: (1) MAJOR - stats-service nao e seguro com mais de um consumidor (processSettled cria a linha do fato sem BetCreated e processCreated depois pula, deixando betType null e dateId errado; DimensionResolver faz existsById+save sem ON CONFLICT) - vira stats-service feat-027, pre-requisito do HPA de stats (infra feat-011). (2) MINOR - PG18 muda PGDATA para /var/lib/postgresql/18/docker e VOLUME para /var/lib/postgresql (docker inspect postgres:18-alpine); mountPath precisa mudar, senao os dados caem na camada do container e somem no restart sem erro; dados PG17 existentes ficam orfaos (aceito, ambiente de teste). (3) MINOR - remover replicas dos 4 Deployments com HPA (CI so faz rollout restart, so o apply manual reaplicaria replicas:1). (4) MINOR - alvo de CPU 70% (nao 60%: 60m de request e ultrapassado so pelo pico de partida da JVM), scaleDown com stabilizationWindowSeconds 300; capacidade do no k3s desconhecida, risco residual. (5) MINOR - alinhar Testcontainers (postgres:17-alpine/redis:7-alpine) nos 3 servicos Java. Limitacao: rodada independente em contextos isolados nao executada (autoavaliacao), impacto baixo.",
       "jira": "SV-719",
       "subtasks": [
         {
           "id": "feat-011.1",
           "name": "k8s/hpa.yaml com os 4 HPAs",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-720",
           "detail": "Um HPA por servico de aplicacao Java, CPU como metrica.",
           "checklist": [
@@ -694,7 +694,7 @@
         {
           "id": "feat-011.2",
           "name": "Remover replicas dos 4 Deployments com HPA",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-721",
           "detail": "kubectl apply manual reaplicaria replicas:1 por cima do HPA.",
           "checklist": [
@@ -706,7 +706,7 @@
         {
           "id": "feat-011.3",
           "name": "Documentar apply e verificacao",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-722",
           "detail": "Roteiro que o operador usa na maquina de producao e que gera as capturas do TCC.",
           "checklist": [
@@ -719,7 +719,7 @@
         {
           "id": "feat-011.4",
           "name": "CHANGELOG e verificacao final",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-723",
           "detail": "Fecha a feature.",
           "checklist": [
@@ -731,7 +731,26 @@
           "owner": "agente"
         }
       ],
-      "evidence": ""
+      "evidence": {
+        "resumo": "Fechada em 2026-09-30. k8s/hpa.yaml cria 4 HorizontalPodAutoscaler (autoscaling/v2) para api-gateway, auth-service, bets-service e stats-service (CPU 70% do request, 1 a 4 replicas, scaleUp imediato, scaleDown com janela de 300 s) e o campo replicas saiu dos 4 Deployments. Sem isso o k8s nunca escalaria sozinho (RNF06 e objetivo de escalabilidade horizontal do TCC 1).",
+        "secoes": [
+          {
+            "titulo": "Como foi verificado",
+            "itens": [
+              "./init.sh do infra verde e os 16 manifests de k8s/ parseiam como YAML; os 4 HPAs tem min 1, max 4, 70%; nenhum dos 4 Deployments tem mais o campo replicas.",
+              "CI do GitHub verde nos PRs SV-720, SV-721, SV-722 e SV-723.",
+              "Depende de stats-service feat-027 e bets-service feat-024 (ja em develop): sem elas, varias replicas corromperiam FACT_BET e o outbox nao seria seguro com varias replicas."
+            ]
+          },
+          {
+            "titulo": "O que divergiu do plano",
+            "itens": [
+              "NAO foi possivel rodar kubectl apply nem ver kubectl get hpa com TARGETS em percentual: nao ha cluster acessivel nesta maquina. O apply real e a saida de kubectl get hpa -w e top pods sao passo do operador no k3s; o roteiro esta em infra/CLAUDE.md 'Verificacao - Autoscaling'.",
+              "Delivery Reviewer, Test Suite Auditor e Persistence Auditor nao foram rodados: a feature so acrescenta manifests YAML, sem codigo de aplicacao nem banco. Risco residual: capacidade do no k3s desconhecida (pior caso 4 x 4 x 512Mi = 8Gi)."
+            ]
+          }
+        ]
+      }
     }
   ]
 }
