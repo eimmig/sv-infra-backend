@@ -584,6 +584,133 @@
         }
       ],
       "evidence": "Fechada em 2026-09-29. 4 subtasks (SV-665/666/667/668, story SV-664), PRs #15-18 (subtask->story) + #19 (story->develop). feat-009.1: resources em 14 containers/initContainers (58 issues). feat-009.2: automountServiceAccountToken:false em 13 pod specs (13 issues) - achado real durante a implementacao, infra/ci.yml validava CHANGELOG.md em todo pull_request sem guarda de base_ref (diferente dos outros 6 repos), corrigido. feat-009.3: [[ ]] em 2 scripts shell (3 issues); as 6 issues kubernetes:S6596 (tag latest) resolvidas como accept via API do SonarCloud com comentario - decisao arquitetural (epic-028, CD depende de :latest+rollout restart). feat-009.4: onboarding real do infra no gate SonarCloud (sonar-project.properties, ci.yml, secrets configurados no repo real via tools/sonar_setup.py). 2 impedimentos reais encontrados e resolvidos na PR story->develop (primeira analise real de verdade): (1) projeto SonarCloud estava com 'Automatic Analysis' (Autoscan) ligado, incompativel com analise via CI - so resolviel via UI web do SonarCloud (sem API publica), usuario desligou manualmente; (2) apos isso, 2 falhas reais de gate na primeira analise: githubactions:S7637 (sonarqube-scan-action@v4 usava tag flutuante em vez de SHA fixo - corrigido, pinado em 689fb39b/v4.2.2, mesmo padrao ja usado pelas actions docker no mesmo arquivo) e new_coverage forcando ERROR (0% - infra nao tem suite de testes/cobertura, gate padrao 'Sonar way' assume que existe - corrigido com sonar.coverage.exclusions=**/* no sonar-project.properties, mecanismo documentado do proprio SonarCloud). Confirmado via API real: GET /issues/search?pullRequest=19 -> 0 issues abertos. Delivery Reviewer: PASS (self-conduzido, verificacao estatica YAML/schema + kubectl client sem cluster acessivel nesta maquina, mesma limitacao de ambiente ja aceita em outros harnesses). ./init.sh do servico verde (docker CLI presente, docker-compose.yml intocado). Vault atualizado: docs/services/infra.md (secao nova sobre os apontamentos + decisao de accept), docs/pipeline-ci-cd.md (tabela de setup pendente, secao 'Um workflow por repositorio'). Fecha a parte infra do epic-038 da raiz."
+    },
+    {
+      "id": "feat-010",
+      "name": "Subir PostgreSQL 17->18 e Redis 7->8 (compose + k8s)",
+      "goal": "Alinhar as versoes de PostgreSQL e Redis rodando no compose e no k3s com as declaradas no Quadro 2 do TCC 1 (PostgreSQL 18.x, Redis 8.x).",
+      "scope": "docker-compose.yml (3 postgres + redis) e k8s/postgres.yaml + k8s/redis.yaml; mountPath do Postgres passa a /var/lib/postgresql (layout do PG18). Fora de escopo: migrar dados PG17 existentes (pg_upgrade/dump) - ambiente de teste, dado orfao aceito.",
+      "description": "Pedido do usuario em 2026-09-30 ao auditar o TCC 1 contra o sistema entregue (docs/divergencias-tcc1.md): Quadro 2 diz PostgreSQL 18.x e Redis 8.x, mas compose e k8s usam postgres:17-alpine e redis:7-alpine. Angular e n8n ficam de fora por decisao do usuario. PG18 muda PGDATA/VOLUME (ver plan_review). Testcontainers dos 3 servicos Java sao alinhados em auth-service feat-024, stats-service feat-027 e bets-service feat-024.",
+      "dependencies": [],
+      "status": "not-started",
+      "plan_review": "2026-09-30, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano de infra (imagens PG18/Redis 8 + HPAs). Veredito: REVISE (Parte B) / READY WITH CONCERNS (Parte A). Achados absorvidos nas subtasks: (1) MAJOR - stats-service nao e seguro com mais de um consumidor (processSettled cria a linha do fato sem BetCreated e processCreated depois pula, deixando betType null e dateId errado; DimensionResolver faz existsById+save sem ON CONFLICT) - vira stats-service feat-027, pre-requisito do HPA de stats (infra feat-011). (2) MINOR - PG18 muda PGDATA para /var/lib/postgresql/18/docker e VOLUME para /var/lib/postgresql (docker inspect postgres:18-alpine); mountPath precisa mudar, senao os dados caem na camada do container e somem no restart sem erro; dados PG17 existentes ficam orfaos (aceito, ambiente de teste). (3) MINOR - remover replicas dos 4 Deployments com HPA (CI so faz rollout restart, so o apply manual reaplicaria replicas:1). (4) MINOR - alvo de CPU 70% (nao 60%: 60m de request e ultrapassado so pelo pico de partida da JVM), scaleDown com stabilizationWindowSeconds 300; capacidade do no k3s desconhecida, risco residual. (5) MINOR - alinhar Testcontainers (postgres:17-alpine/redis:7-alpine) nos 3 servicos Java. Limitacao: rodada independente em contextos isolados nao executada (autoavaliacao), impacto baixo.",
+      "jira": "SV-715",
+      "subtasks": [
+        {
+          "id": "feat-010.1",
+          "name": "docker-compose: postgres:18-alpine e redis:8-alpine",
+          "status": "not-started",
+          "jira": "SV-716",
+          "detail": "Layout de volume do PG18 muda; sem trocar o mountPath os dados somem no restart.",
+          "checklist": [
+            "3 servicos postgres-*: image postgres:18-alpine e volume postgres-*-data montado em /var/lib/postgresql (nao /var/lib/postgresql/data).",
+            "redis: image redis:8-alpine (command/--appendonly yes inalterados).",
+            "docs/services/infra.md: nota curta de que volumes de PG17 antigos ficam orfaos (docker volume rm ou pg_dump antes)."
+          ],
+          "validation": "docker compose config valida; docker compose up -d com volumes novos deixa os 5 containers healthy; psql confirma server_version 18.x e redis-cli INFO server confirma redis_version 8.x.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-010.2",
+          "name": "k8s: postgres.yaml (x3) e redis.yaml",
+          "status": "not-started",
+          "jira": "SV-717",
+          "detail": "Mesma troca nos manifests do k3s de producao.",
+          "checklist": [
+            "k8s/postgres.yaml: image postgres:18-alpine e mountPath /var/lib/postgresql nos 3 Deployments.",
+            "k8s/redis.yaml: image redis:8-alpine.",
+            "docs/services/infra.md e infra/CLAUDE.md: aviso de que o PVC existente com PG17 fica orfao e o tenant precisa ser reprovisionado."
+          ],
+          "validation": "kubectl apply --dry-run=client -f k8s/postgres.yaml -f k8s/redis.yaml sem erro; grep por postgres:17 e redis:7 em k8s e docker-compose.yml vazio.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-010.3",
+          "name": "CHANGELOG e verificacao final",
+          "status": "not-started",
+          "jira": "SV-718",
+          "detail": "Fecha a feature.",
+          "checklist": [
+            "CHANGELOG.md: entrada em [Unreleased].",
+            "./init.sh do infra verde.",
+            "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto (nao docs/DECISIONS-LOG.md a menos que divirja do TCC 1) no mesmo commit.",
+            "docs/divergencias-tcc1.md (raiz): confirmar que a nota de versoes continua correta (PG18/Redis 8 nao sao divergencia)."
+          ],
+          "validation": "./init.sh verde e CI do PR passando.",
+          "owner": "agente"
+        }
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "feat-011",
+      "name": "HPAs para api-gateway, auth-service, bets-service e stats-service",
+      "goal": "Dar ao k3s autoscaling horizontal real (autoscaling/v2) para provar RNF06 / objetivo de escalabilidade horizontal do TCC 1.",
+      "scope": "k8s/hpa.yaml novo com 4 HorizontalPodAutoscaler (min 1, max 4, CPU 70% de requests.cpu); remocao de replicas dos 4 Deployments; docs de apply e verificacao. Fora de escopo: HPA por metrica de fila (KEDA), HPA de telegram-integration/web.",
+      "description": "Auditoria do TCC 1 (2026-09-30): nenhum HPA em k8s/ e todos os Deployments com replicas:1 fixo - o k8s nunca escalaria sozinho. k3s ja traz metrics-server (compose/kind local nao). Depende de stats-service feat-027: com mais de um consumidor, eventos fora de ordem corrompem betType/dateId (ver plan_review) - o HPA de stats so vale depois dessa correcao.",
+      "dependencies": [
+        "feat-010",
+        "services/stats-service:feat-027"
+      ],
+      "status": "not-started",
+      "plan_review": "2026-09-30, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano de infra (imagens PG18/Redis 8 + HPAs). Veredito: REVISE (Parte B) / READY WITH CONCERNS (Parte A). Achados absorvidos nas subtasks: (1) MAJOR - stats-service nao e seguro com mais de um consumidor (processSettled cria a linha do fato sem BetCreated e processCreated depois pula, deixando betType null e dateId errado; DimensionResolver faz existsById+save sem ON CONFLICT) - vira stats-service feat-027, pre-requisito do HPA de stats (infra feat-011). (2) MINOR - PG18 muda PGDATA para /var/lib/postgresql/18/docker e VOLUME para /var/lib/postgresql (docker inspect postgres:18-alpine); mountPath precisa mudar, senao os dados caem na camada do container e somem no restart sem erro; dados PG17 existentes ficam orfaos (aceito, ambiente de teste). (3) MINOR - remover replicas dos 4 Deployments com HPA (CI so faz rollout restart, so o apply manual reaplicaria replicas:1). (4) MINOR - alvo de CPU 70% (nao 60%: 60m de request e ultrapassado so pelo pico de partida da JVM), scaleDown com stabilizationWindowSeconds 300; capacidade do no k3s desconhecida, risco residual. (5) MINOR - alinhar Testcontainers (postgres:17-alpine/redis:7-alpine) nos 3 servicos Java. Limitacao: rodada independente em contextos isolados nao executada (autoavaliacao), impacto baixo.",
+      "jira": "SV-719",
+      "subtasks": [
+        {
+          "id": "feat-011.1",
+          "name": "k8s/hpa.yaml com os 4 HPAs",
+          "status": "not-started",
+          "jira": "SV-720",
+          "detail": "Um HPA por servico de aplicacao Java, CPU como metrica.",
+          "checklist": [
+            "autoscaling/v2, minReplicas 1, maxReplicas 4, averageUtilization 70.",
+            "behavior: scaleUp sem espera; scaleDown com stabilizationWindowSeconds 300.",
+            "Alvos: api-gateway, auth-service, bets-service, stats-service."
+          ],
+          "validation": "kubectl apply --dry-run=client -f k8s/hpa.yaml sem erro; em cluster real (k3s do usuario) kubectl get hpa mostra TARGETS com percentual (metrics-server ok).",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-011.2",
+          "name": "Remover replicas dos 4 Deployments com HPA",
+          "status": "not-started",
+          "jira": "SV-721",
+          "detail": "kubectl apply manual reaplicaria replicas:1 por cima do HPA.",
+          "checklist": [
+            "Remover o campo replicas de k8s/api-gateway.yaml, auth-service.yaml, bets-service.yaml e stats-service.yaml."
+          ],
+          "validation": "grep de replicas nesses 4 arquivos vazio.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-011.3",
+          "name": "Documentar apply e verificacao",
+          "status": "not-started",
+          "jira": "SV-722",
+          "detail": "Roteiro que o operador usa na maquina de producao e que gera as capturas do TCC.",
+          "checklist": [
+            "docs/services/infra.md e infra/CLAUDE.md: kubectl apply -f k8s/hpa.yaml; kubectl get hpa -w; kubectl top pods; como gerar carga (tools/load_test_bets.py).",
+            "Registrar risco residual: capacidade do no k3s desconhecida (4 servicos x 4 replicas x limite 512Mi = 8Gi no pior caso)."
+          ],
+          "validation": "Roteiro revisado contra os manifests reais.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-011.4",
+          "name": "CHANGELOG e verificacao final",
+          "status": "not-started",
+          "jira": "SV-723",
+          "detail": "Fecha a feature.",
+          "checklist": [
+            "CHANGELOG.md: entrada em [Unreleased].",
+            "./init.sh do infra verde.",
+            "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto (nao docs/DECISIONS-LOG.md a menos que divirja do TCC 1) no mesmo commit."
+          ],
+          "validation": "./init.sh verde e CI do PR passando; evidence com a saida real de kubectl get hpa no k3s do usuario (passo de operador).",
+          "owner": "agente"
+        }
+      ],
+      "evidence": ""
     }
   ]
 }
