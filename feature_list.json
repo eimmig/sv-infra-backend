@@ -719,7 +719,7 @@
         {
           "id": "feat-011.4",
           "name": "CHANGELOG e verificacao final",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-723",
           "detail": "Fecha a feature.",
           "checklist": [
