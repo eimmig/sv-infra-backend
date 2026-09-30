@@ -592,14 +592,14 @@
       "scope": "docker-compose.yml (3 postgres + redis) e k8s/postgres.yaml + k8s/redis.yaml; mountPath do Postgres passa a /var/lib/postgresql (layout do PG18). Fora de escopo: migrar dados PG17 existentes (pg_upgrade/dump) - ambiente de teste, dado orfao aceito.",
       "description": "Pedido do usuario em 2026-09-30 ao auditar o TCC 1 contra o sistema entregue (docs/divergencias-tcc1.md): Quadro 2 diz PostgreSQL 18.x e Redis 8.x, mas compose e k8s usam postgres:17-alpine e redis:7-alpine. Angular e n8n ficam de fora por decisao do usuario. PG18 muda PGDATA/VOLUME (ver plan_review). Testcontainers dos 3 servicos Java sao alinhados em auth-service feat-024, stats-service feat-027 e bets-service feat-024.",
       "dependencies": [],
-      "status": "not-started",
+      "status": "in-progress",
       "plan_review": "2026-09-30, Plan Reviewer (review-suite:ln-11-plan-reviewer) rodado contra o plano de infra (imagens PG18/Redis 8 + HPAs). Veredito: REVISE (Parte B) / READY WITH CONCERNS (Parte A). Achados absorvidos nas subtasks: (1) MAJOR - stats-service nao e seguro com mais de um consumidor (processSettled cria a linha do fato sem BetCreated e processCreated depois pula, deixando betType null e dateId errado; DimensionResolver faz existsById+save sem ON CONFLICT) - vira stats-service feat-027, pre-requisito do HPA de stats (infra feat-011). (2) MINOR - PG18 muda PGDATA para /var/lib/postgresql/18/docker e VOLUME para /var/lib/postgresql (docker inspect postgres:18-alpine); mountPath precisa mudar, senao os dados caem na camada do container e somem no restart sem erro; dados PG17 existentes ficam orfaos (aceito, ambiente de teste). (3) MINOR - remover replicas dos 4 Deployments com HPA (CI so faz rollout restart, so o apply manual reaplicaria replicas:1). (4) MINOR - alvo de CPU 70% (nao 60%: 60m de request e ultrapassado so pelo pico de partida da JVM), scaleDown com stabilizationWindowSeconds 300; capacidade do no k3s desconhecida, risco residual. (5) MINOR - alinhar Testcontainers (postgres:17-alpine/redis:7-alpine) nos 3 servicos Java. Limitacao: rodada independente em contextos isolados nao executada (autoavaliacao), impacto baixo.",
       "jira": "SV-715",
       "subtasks": [
         {
           "id": "feat-010.1",
           "name": "docker-compose: postgres:18-alpine e redis:8-alpine",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-716",
           "detail": "Layout de volume do PG18 muda; sem trocar o mountPath os dados somem no restart.",
           "checklist": [
