@@ -13,7 +13,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          image: postgres:18-alpine
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: auth }
@@ -24,7 +24,7 @@ spec:
             requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
             limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
-            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "auth_user", "-d", "auth"] }
             initialDelaySeconds: 5
@@ -68,7 +68,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          image: postgres:18-alpine
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: bets }
@@ -79,7 +79,7 @@ spec:
             requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
             limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
-            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "bets_user", "-d", "bets"] }
             initialDelaySeconds: 5
@@ -123,7 +123,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          image: postgres:18-alpine
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: stats }
@@ -134,7 +134,7 @@ spec:
             requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
             limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
-            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "stats_user", "-d", "stats"] }
             initialDelaySeconds: 5

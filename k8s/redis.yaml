@@ -13,7 +13,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: redis:8-alpine
           command: ["sh", "-c", "exec redis-server --requirepass \"$REDIS_PASSWORD\" --appendonly yes"]
           ports: [{ containerPort: 6379 }]
           env:
