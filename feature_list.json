@@ -706,7 +706,7 @@
         {
           "id": "feat-011.3",
           "name": "Documentar apply e verificacao",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-722",
           "detail": "Roteiro que o operador usa na maquina de producao e que gera as capturas do TCC.",
           "checklist": [
