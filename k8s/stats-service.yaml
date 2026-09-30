@@ -3,13 +3,13 @@ kind: Deployment
 metadata:
   name: stats-service
 spec:
-  replicas: 1
   selector:
     matchLabels: { app: stats-service }
   template:
     metadata:
       labels: { app: stats-service }
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:
@@ -37,6 +37,9 @@ spec:
             - { name: REDIS_PORT, value: "6379" }
             - name: REDIS_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: REDIS_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           readinessProbe:
             httpGet: { path: /actuator/health, port: 8083 }
             initialDelaySeconds: 15

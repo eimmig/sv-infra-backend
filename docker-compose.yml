@@ -2,7 +2,7 @@ name: stakevault-infra
 
 services:
   postgres-auth:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_AUTH_DB}
       POSTGRES_USER: ${POSTGRES_AUTH_USER}
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-auth-data:/var/lib/postgresql/data
+      - postgres-auth-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -20,7 +20,7 @@ services:
     networks: [stakevault]
 
   postgres-bets:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_BETS_DB}
       POSTGRES_USER: ${POSTGRES_BETS_USER}
@@ -28,7 +28,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres-bets-data:/var/lib/postgresql/data
+      - postgres-bets-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -38,7 +38,7 @@ services:
     networks: [stakevault]
 
   postgres-stats:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_STATS_DB}
       POSTGRES_USER: ${POSTGRES_STATS_USER}
@@ -46,7 +46,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - postgres-stats-data:/var/lib/postgresql/data
+      - postgres-stats-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -89,7 +89,7 @@ services:
     networks: [stakevault]
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}

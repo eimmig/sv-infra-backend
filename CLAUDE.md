@@ -185,6 +185,13 @@ Pré-requisito: as imagens `stakevault/<serviço>:local` já construídas (`dock
 cada `services/<serviço>/`, ver o `CLAUDE.md` daquele repositório) — este harness só as
 referencia, nunca as constrói.
 
+**PostgreSQL 18 e Redis 8 (`feat-010`)**: as imagens são `postgres:18-alpine` e `redis:8-alpine`.
+O PG18 grava os dados em `/var/lib/postgresql/18/docker`, então o volume (compose) e o PVC (k8s)
+montam `/var/lib/postgresql`, não `/var/lib/postgresql/data`. Volume ou PVC criado com PG17 fica
+**órfão** (o PG18 inicializa um cluster novo e vazio ao lado, o antigo permanece em `data/`):
+depois de trocar a imagem num ambiente já existente, os tenants precisam ser reprovisionados
+(`POST /api/v1/admin/tenants`) ou o volume antigo migrado com `pg_dump`/`pg_upgrade` antes.
+
 ```bash
 # 1. Cluster local (kind, não Docker Desktop Kubernetes — ver nota acima)
 kind create cluster --name stakevault --config k8s/kind-config.yaml
@@ -247,3 +254,43 @@ O token nunca é impresso (mesmo padrão de `SONAR_TOKEN`). Sem rotação autom�
 antes do token expirar (`--duration` customiza, default `8760h`/1 ano). Uma sessão sem
 conectividade real com o cluster (`kubectl cluster-info` falha) não consegue rodar nenhum dos dois
 comandos — só autorar/revisar `k8s/ci-deployer-rbac.yaml` e `tools/kube_deploy_setup.py`.
+
+
+## Verificação — Autoscaling (`feat-011`)
+
+Pré-requisito: `kubectl` apontando pro k3s de produção (o k3s já traz o `metrics-server`; o `kind`
+local não — HPA sem ele fica com `TARGETS <unknown>`). Sem cluster acessível só dá pra autorar e
+validar o parse do YAML.
+
+```bash
+kubectl apply -f k8s/hpa.yaml
+kubectl top pods                       # confirma que o metrics-server responde
+kubectl get hpa                        # TARGETS deve mostrar percentual, não <unknown>
+```
+
+Os 4 HPAs (`api-gateway`, `auth-service`, `bets-service`, `stats-service`) usam CPU a 70% do
+`requests.cpu` (100m), de 1 a 4 réplicas; escalam pra cima sem espera e pra baixo só depois de 300 s.
+Os Deployments **não** declaram `replicas` (o HPA é o dono): não reintroduza o campo, um
+`kubectl apply` manual o reaplicaria por cima do HPA.
+
+Para gerar as capturas do TCC (estresse com escala automática), num terminal:
+
+```bash
+kubectl get hpa -w                     # captura 1: TARGETS subindo e REPLICAS passando de 1
+kubectl get pods -w                    # captura 2: pods novos Running
+kubectl top pods                       # captura 3: consumo por pod durante a carga
+```
+
+e em outro, a carga (cria um tenant limpo e registra/liquida apostas via API real):
+
+```bash
+python tools/load_test_bets.py --n-bets 200000 --workers 64   --auth-base-url http://localhost:18081 --gateway-base-url http://<host-do-ingress>   --admin-api-key "$ADMIN_API_KEY"
+```
+
+(a rota de admin do `auth-service` fica fora do Gateway: `kubectl port-forward svc/auth-service
+18081:8081`). Depois da carga, `kubectl get hpa -w` mostra o `scaleDown` só após 300 s.
+
+Risco conhecido: a capacidade do nó k3s é desconhecida — 4 serviços x 4 réplicas x limite de 512Mi
+somam 8Gi no pior caso; se sobrar réplica em `Pending`, o nó está pequeno (`kubectl describe pod`).
+`stats-service` só é seguro com mais de uma réplica desde `stats-service feat-027` (eventos fora de
+ordem e dimensões idempotentes).

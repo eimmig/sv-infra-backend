@@ -10,17 +10,21 @@ spec:
     metadata:
       labels: { app: postgres-auth }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          image: postgres:18-alpine
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: auth }
             - { name: POSTGRES_USER, value: auth_user }
             - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_AUTH_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
-            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "auth_user", "-d", "auth"] }
             initialDelaySeconds: 5
@@ -61,17 +65,21 @@ spec:
     metadata:
       labels: { app: postgres-bets }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          image: postgres:18-alpine
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: bets }
             - { name: POSTGRES_USER, value: bets_user }
             - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_BETS_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
-            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "bets_user", "-d", "bets"] }
             initialDelaySeconds: 5
@@ -112,17 +120,21 @@ spec:
     metadata:
       labels: { app: postgres-stats }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: postgres
-          image: postgres:17-alpine
+          image: postgres:18-alpine
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: stats }
             - { name: POSTGRES_USER, value: stats_user }
             - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_STATS_PASSWORD } }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
           volumeMounts:
-            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "stats_user", "-d", "stats"] }
             initialDelaySeconds: 5
