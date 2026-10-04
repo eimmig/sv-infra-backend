@@ -816,7 +816,7 @@
         {
           "id": "feat-012.4",
           "name": "Aplicar no k3s e rodar a prova real",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-736",
           "detail": "Passo do operador: aplicar na ordem certa e medir uma vez.",
           "checklist": [
@@ -826,11 +826,42 @@
             "Esperar o cluster assentar (HPAs em 1 replica e kubectl top respondendo) e rodar bash tools/evidence/02-carga.sh 100000 128 em pasta nova.",
             "Comparar com 32,4 apostas/s, 26 erros, 501m no postgres-bets, 2 restarts no bets-service e 18 apostas pending no stats; conferir select count(*) from pg_stat_activity."
           ],
-          "validation": "evidence preenchida com a tabela antes e depois e a saida de 02-resumo.txt e 02-reconciliacao.txt.",
+          "validation": "Aplicado no k3s de producao em 2026-10-04 (bancos primeiro, depois os 4 Java); carga real de 100.000 apostas iniciada e cancelada pelo operador apos ~4 minutos, por isso vazao, erros e reconciliacao nao foram remedidos. Ver evidence.",
           "owner": "usuario"
         }
       ],
-      "evidence": ""
+      "evidence": {
+        "resumo": "Fechada em 2026-10-04 com prova real parcial: o ajuste esta aplicado em producao e funcionando (0 restarts, banco bem abaixo do limite), mas a vazao nao foi remedida porque a carga foi cancelada pelo operador antes do fim.",
+        "secoes": [
+          {
+            "titulo": "O que foi feito",
+            "itens": [
+              "k8s/postgres.yaml: strategy Recreate nos 3 PostgreSQL; postgres-bets com requests 500m/1Gi, limits 2000m/2Gi, shared_buffers=512MB e effective_cache_size=1GB; probes pg_isready com timeoutSeconds 5 (liveness com failureThreshold 6).",
+              "k8s/api-gateway.yaml, auth-service.yaml, bets-service.yaml e stats-service.yaml: startupProbe e livenessProbe em /actuator/health/liveness, readinessProbe em /actuator/health/readiness, timeoutSeconds 5, sem initialDelaySeconds, memory requests 512Mi e limits 1Gi; CPU limit dos Java inalterado em 500m.",
+              "Vault: docs/services/infra.md, docs/observabilidade-e-configuracao.md (liveness nao e mais o /actuator/health agregado) e infra/CLAUDE.md (roteiro de verificacao)."
+            ]
+          },
+          {
+            "titulo": "Como foi verificado",
+            "itens": [
+              "Plan Reviewer REVISE (2026-10-04) absorvido nas subtasks; Delivery Reviewer CONCERNS (2 P3, sem P0/P1): frases do vault ajustadas e teste de liveness registrado no backlog dos 4 servicos (api-gateway feat-020, auth-service feat-025, bets-service feat-025, stats-service feat-030). Test Suite Auditor e Persistence Auditor N/A: o infra nao tem testes nem codigo com banco.",
+              "CI verde nos PRs das subtasks (SV-733 PR #30, SV-734 PR #31, SV-735 PR #32); ./init.sh do infra verde.",
+              "No k3s: args do PostgreSQL validados em pod descartavel (show shared_buffers = 512MB); apos o apply, show shared_buffers = 512MB no postgres-bets, limites cpu 2 e memory 2Gi, max_connections 100; 3 bancos e 4 Java Running 1/1 com 0 restarts.",
+              "Baseline apos o ajuste (evidence/pos-banco no Debian): postgres-bets a 10m de CPU em repouso; limites do no a 65% de CPU e 48% de memoria (requests 18% e 24%).",
+              "Carga parcial (100.000 apostas, 128 threads, cancelada apos ~4 minutos): HPAs em 4, 3, 4 e 4 replicas, todos os pods com 0 restarts mesmo com replicas novas ainda 0/1 aquecendo; postgres-bets a 216m de CPU e 49 conexoes (na rodada anterior chegou a 501m e os probes de 1 s estouraram); bets-service a ~495% do request (limite de 500m por pod)."
+            ]
+          },
+          {
+            "titulo": "O que divergiu do plano e limitacoes",
+            "itens": [
+              "A prova real era uma carga completa comparada a 32,4 apostas/s, 26 erros e 501m: foi cancelada pelo operador, entao vazao, erros e reconciliacao nao foram medidos e nenhum ganho de vazao pode ser afirmado.",
+              "docker run e kubectl --dry-run nao rodaram na maquina de desenvolvimento (Docker Desktop parado, contexto kubectl de um kind morto): parse YAML mais pod descartavel no k3s.",
+              "O pico parcial indica que o proximo teto sao os pods Java (500m); o limite de CPU deles ficou inalterado de proposito e vira candidato a nova feature se a vazao for remedida.",
+              "Achado de processo: o pod descartavel fica Ready antes de o initdb terminar, entao o roteiro repete o psql ate responder; um port-forward esquecido na porta 18081 derrubou o 02-carga.sh, e o lib.sh de tools/evidence agora aborta com mensagem."
+            ]
+          }
+        ]
+      }
     }
   ]
 }
