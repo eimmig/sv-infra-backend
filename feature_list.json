@@ -751,6 +751,21 @@
           }
         ]
       }
+    },
+    {
+      "id": "feat-012",
+      "name": "Tornar os probes tolerantes a carga e dimensionar o PostgreSQL do bets",
+      "goal": "Evitar que o kubelet reinicie pods saudaveis porem saturados durante o escalonamento, e remover o gargalo do banco do bets-service sob carga.",
+      "scope": "k8s/bets-service.yaml, auth-service.yaml, stats-service.yaml e api-gateway.yaml: timeoutSeconds do liveness/readiness e startupProbe para a JVM; k8s/postgres.yaml: limites de CPU/memoria de postgres-bets e probe pg_isready com timeout maior; revisar o limite de CPU de 500m dos servicos Java.",
+      "description": "Achado real da rodada de producao de 2026-10-04 (evidence/final, 100.000 apostas, 128 threads, HPA subindo para 4 replicas): (1) o liveness dos servicos Java tem timeoutSeconds=1, periodSeconds=15 e failureThreshold=3 com limite de CPU de 500m; sob carga /actuator/health passou de 1 s e o kubelet reiniciou pods saudaveis (bets-service foi de 13 para 15 restarts, eventos 'Liveness probe failed: context deadline exceeded' e 'Killing'), o que gerou 26 erros no gerador de carga; (2) a partida a frio da JVM com 500m passa de delay=30s mais 3x15s e o pod entra em loop de restart (12 restarts antigos do bets-service e do stats-service, 'connection refused'); (3) postgres-bets chegou a 501m de CPU no pico (kubectl top) e o pg_isready do liveness e do readiness estourou 1 s, a vazao com 4 replicas ficou em 32,4 apostas/s contra 43,2 com 1 replica na rodada 1, o que indica o PostgreSQL unico como gargalo. Propor: timeoutSeconds 3 a 5, failureThreshold maior, startupProbe, e medir de novo a vazao depois do ajuste do banco.",
+      "dependencies": [
+        "feat-011"
+      ],
+      "status": "not-started",
+      "plan_review": "",
+      "jira": "",
+      "subtasks": [],
+      "evidence": ""
     }
   ]
 }
