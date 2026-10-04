@@ -7,6 +7,8 @@ CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-04
+
 - [SV-732](https://stakevault.atlassian.net/browse/SV-732) - Probes de saude corretos, Recreate nos PostgreSQL e dimensionamento do postgres-bets
 - [SV-733](https://stakevault.atlassian.net/browse/SV-733) - PostgreSQL com Recreate e postgres-bets dimensionado
 - [SV-734](https://stakevault.atlassian.net/browse/SV-734) - Probes dos 4 servicos Java
