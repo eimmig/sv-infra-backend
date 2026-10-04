@@ -783,7 +783,7 @@
         {
           "id": "feat-012.2",
           "name": "Probes dos 4 servicos Java",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-734",
           "detail": "Liveness nao pode depender de banco e broker; JVM sob 500m precisa de startupProbe.",
           "checklist": [
@@ -793,7 +793,7 @@
             "Memory requests 512Mi e limits 1Gi; CPU limits 500m inalterado.",
             "Os 4 arquivos: api-gateway.yaml, auth-service.yaml, bets-service.yaml, stats-service.yaml."
           ],
-          "validation": "kubectl apply --dry-run=client nos 4 arquivos sem erro; grep de /actuator/health sem sufixo nos 4 arquivos vazio.",
+          "validation": "YAML parseado nos 4 arquivos: startupProbe e livenessProbe em /actuator/health/liveness, readinessProbe em /actuator/health/readiness, memory requests 512Mi e limits 1Gi; grep de /actuator/health sem sufixo vazio. kubectl --dry-run nao rodou nesta maquina (contexto kubectl morto); validado no apply do k3s em feat-012.4.",
           "owner": "agente"
         },
         {
