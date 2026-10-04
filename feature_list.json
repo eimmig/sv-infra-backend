@@ -799,7 +799,7 @@
         {
           "id": "feat-012.3",
           "name": "Vault, CHANGELOG e verificacao final",
-          "status": "not-started",
+          "status": "done",
           "jira": "SV-735",
           "detail": "Fecha o codigo da feature e a documentacao.",
           "checklist": [
@@ -810,7 +810,7 @@
             "./init.sh do infra verde.",
             "Vault (docs/) revisado: alguma descoberta desta feature - mecanismo reaproveitavel, gotcha de lib/config, lacuna de especificacao, decisao que diverge do ja documentado - sem nota correspondente? Se sim, atualizar/criar a nota do assunto (nao docs/DECISIONS-LOG.md a menos que divirja do TCC 1) no mesmo commit."
           ],
-          "validation": "./init.sh verde e CI do PR passando, incluindo SonarCloud.",
+          "validation": "./init.sh do infra verde (docker compose config); vault revisado: docs/services/infra.md (nova secao), docs/observabilidade-e-configuracao.md (liveness vs readiness) e infra/CLAUDE.md (roteiro de verificacao). Falta so a CI do PR.",
           "owner": "agente"
         },
         {

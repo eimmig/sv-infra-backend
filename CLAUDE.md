@@ -256,6 +256,25 @@ conectividade real com o cluster (`kubectl cluster-info` falha) não consegue ro
 comandos — só autorar/revisar `k8s/ci-deployer-rbac.yaml` e `tools/kube_deploy_setup.py`.
 
 
+## Verificação — Probes e PostgreSQL (`feat-012`)
+
+Os Deployments de PostgreSQL usam `strategy: Recreate` (nunca `RollingUpdate`: dois pods sobre o mesmo PVC e
+`PGDATA`) e o `postgres-bets` tem CPU/memória e `shared_buffers` ajustados; os 4 serviços Java usam
+`/actuator/health/liveness` (liveness e `startupProbe`) e `/actuator/health/readiness` (readiness). Não aplique
+mudança de recursos num PostgreSQL com `kubectl set resources`: use o manifest, que traz o `Recreate`. Roteiro no
+k3s:
+
+```bash
+kubectl run pgtest --image=postgres:18-alpine --restart=Never --env=POSTGRES_PASSWORD=x -- postgres -c shared_buffers=512MB -c effective_cache_size=1GB
+kubectl exec pgtest -- psql -U postgres -c "show shared_buffers"   # 512MB; depois: kubectl delete pod pgtest
+kubectl apply -f k8s/postgres.yaml && kubectl rollout status deploy/postgres-bets deploy/postgres-auth deploy/postgres-stats
+kubectl apply -f k8s/auth-service.yaml -f k8s/bets-service.yaml -f k8s/stats-service.yaml -f k8s/api-gateway.yaml
+kubectl exec deploy/postgres-bets -- psql -U bets_user -d bets -c "show shared_buffers"
+```
+
+Depois, esperar o cluster assentar (HPAs em 1 réplica e `kubectl top pods` respondendo) e rodar a carga real de
+`../docs/testes-de-producao.md` em uma pasta nova.
+
 ## Verificação — Autoscaling (`feat-011`)
 
 Pré-requisito: `kubectl` apontando pro k3s de produção (o k3s já traz o `metrics-server`; o `kind`
