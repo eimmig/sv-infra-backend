@@ -23,6 +23,11 @@ CI (ver `docs/CI-CD.md`).
 - [SV-721](https://stakevault.atlassian.net/browse/SV-721) - Remover replicas dos 4 Deployments com HPA
 - [SV-722](https://stakevault.atlassian.net/browse/SV-722) - Documentar apply e verificacao
 - [SV-723](https://stakevault.atlassian.net/browse/SV-723) - CHANGELOG e verificacao final
+- [SV-732](https://stakevault.atlassian.net/browse/SV-732) - Probes de saude corretos, Recreate nos PostgreSQL e dimensionamento do postgres-bets
+- [SV-733](https://stakevault.atlassian.net/browse/SV-733) - PostgreSQL com Recreate e postgres-bets dimensionado
+- [SV-734](https://stakevault.atlassian.net/browse/SV-734) - Probes dos 4 servicos Java
+- [SV-735](https://stakevault.atlassian.net/browse/SV-735) - Vault, CHANGELOG e verificacao final
+- [SV-736](https://stakevault.atlassian.net/browse/SV-736) - Aplicar no k3s e rodar a prova real
 
 ## [0.1.1] - 2026-09-24
 
