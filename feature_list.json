@@ -816,7 +816,7 @@
         {
           "id": "feat-012.4",
           "name": "Aplicar no k3s e rodar a prova real",
-          "status": "not-started",
+          "status": "in-progress",
           "jira": "SV-736",
           "detail": "Passo do operador: aplicar na ordem certa e medir uma vez.",
           "checklist": [
