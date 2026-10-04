@@ -7,6 +7,12 @@ CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
 
+- [SV-732](https://stakevault.atlassian.net/browse/SV-732) - Probes de saude corretos, Recreate nos PostgreSQL e dimensionamento do postgres-bets
+- [SV-733](https://stakevault.atlassian.net/browse/SV-733) - PostgreSQL com Recreate e postgres-bets dimensionado
+- [SV-734](https://stakevault.atlassian.net/browse/SV-734) - Probes dos 4 servicos Java
+- [SV-735](https://stakevault.atlassian.net/browse/SV-735) - Vault, CHANGELOG e verificacao final
+- [SV-736](https://stakevault.atlassian.net/browse/SV-736) - Aplicar no k3s e rodar a prova real
+
 ## [0.2.0] - 2026-09-30
 
 - `k8s/hpa.yaml`: HorizontalPodAutoscaler (CPU 70%, 1 a 4 réplicas) para `api-gateway`, `auth-service`, `bets-service` e `stats-service`; `replicas` removido dos 4 Deployments (`feat-011`)
