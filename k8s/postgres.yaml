@@ -4,6 +4,7 @@ metadata:
   name: postgres-auth
 spec:
   replicas: 1
+  strategy: { type: Recreate }
   selector:
     matchLabels: { app: postgres-auth }
   template:
@@ -29,10 +30,13 @@ spec:
             exec: { command: ["pg_isready", "-U", "auth_user", "-d", "auth"] }
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 5
           livenessProbe:
             exec: { command: ["pg_isready", "-U", "auth_user", "-d", "auth"] }
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: postgres-auth-data }
@@ -59,6 +63,7 @@ metadata:
   name: postgres-bets
 spec:
   replicas: 1
+  strategy: { type: Recreate }
   selector:
     matchLabels: { app: postgres-bets }
   template:
@@ -69,6 +74,7 @@ spec:
       containers:
         - name: postgres
           image: postgres:18-alpine
+          args: ["postgres", "-c", "shared_buffers=512MB", "-c", "effective_cache_size=1GB"]
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: bets }
@@ -76,18 +82,21 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_BETS_PASSWORD } }
           resources:
-            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
-            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
+            requests: { cpu: 500m, memory: 1Gi, ephemeral-storage: 128Mi }
+            limits: { cpu: 2000m, memory: 2Gi, ephemeral-storage: 512Mi }
           volumeMounts:
             - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:
             exec: { command: ["pg_isready", "-U", "bets_user", "-d", "bets"] }
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 5
           livenessProbe:
             exec: { command: ["pg_isready", "-U", "bets_user", "-d", "bets"] }
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: postgres-bets-data }
@@ -114,6 +123,7 @@ metadata:
   name: postgres-stats
 spec:
   replicas: 1
+  strategy: { type: Recreate }
   selector:
     matchLabels: { app: postgres-stats }
   template:
@@ -139,10 +149,13 @@ spec:
             exec: { command: ["pg_isready", "-U", "stats_user", "-d", "stats"] }
             initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 5
           livenessProbe:
             exec: { command: ["pg_isready", "-U", "stats_user", "-d", "stats"] }
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: postgres-stats-data }
