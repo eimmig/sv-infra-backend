@@ -820,7 +820,7 @@
           "jira": "SV-736",
           "detail": "Passo do operador: aplicar na ordem certa e medir uma vez.",
           "checklist": [
-            "Antes do apply, validar os args em pod descartavel: kubectl run pgtest --image=postgres:18-alpine --restart=Never --env=POSTGRES_PASSWORD=x -- postgres -c shared_buffers=512MB -c effective_cache_size=1GB, depois kubectl exec pgtest -- psql -U postgres -c \"show shared_buffers\" e kubectl delete pod pgtest.",
+            "Antes do apply, validar os args em pod descartavel: kubectl run pgtest --image=postgres:18-alpine --restart=Never --env=POSTGRES_PASSWORD=x -- postgres -c shared_buffers=512MB -c effective_cache_size=1GB, depois kubectl wait --for=condition=Ready pod/pgtest --timeout=180s, kubectl exec pgtest -- psql -U postgres -c \"show shared_buffers\" e kubectl delete pod pgtest.",
             "kubectl apply -f k8s/postgres.yaml, esperar kubectl rollout status dos 3 bancos.",
             "kubectl apply dos 4 manifests Java, esperar o rollout; conferir show shared_buffers no postgres-bets.",
             "Esperar o cluster assentar (HPAs em 1 replica e kubectl top respondendo) e rodar bash tools/evidence/02-carga.sh 100000 128 em pasta nova.",

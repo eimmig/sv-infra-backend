@@ -266,6 +266,7 @@ k3s:
 
 ```bash
 kubectl run pgtest --image=postgres:18-alpine --restart=Never --env=POSTGRES_PASSWORD=x -- postgres -c shared_buffers=512MB -c effective_cache_size=1GB
+kubectl wait --for=condition=Ready pod/pgtest --timeout=180s   # sem isso o exec cai em "container not found"
 kubectl exec pgtest -- psql -U postgres -c "show shared_buffers"   # 512MB; depois: kubectl delete pod pgtest
 kubectl apply -f k8s/postgres.yaml && kubectl rollout status deploy/postgres-bets deploy/postgres-auth deploy/postgres-stats
 kubectl apply -f k8s/auth-service.yaml -f k8s/bets-service.yaml -f k8s/stats-service.yaml -f k8s/api-gateway.yaml
