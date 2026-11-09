@@ -4,6 +4,7 @@ metadata:
   name: rabbitmq
 spec:
   replicas: 1
+  strategy: { type: Recreate }
   selector:
     matchLabels: { app: rabbitmq }
   template:
@@ -11,6 +12,7 @@ spec:
       labels: { app: rabbitmq }
     spec:
       automountServiceAccountToken: false
+      hostname: rabbitmq
       containers:
         - name: rabbitmq
           image: rabbitmq:4-management-alpine
@@ -23,20 +25,21 @@ spec:
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: RABBITMQ_PASSWORD } }
           resources:
-            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
-            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
+            requests: { cpu: 500m, memory: 512Mi, ephemeral-storage: 128Mi }
+            limits: { cpu: 2000m, memory: 1Gi, ephemeral-storage: 512Mi }
           volumeMounts:
             - { name: data, mountPath: /var/lib/rabbitmq }
           readinessProbe:
             exec: { command: ["rabbitmq-diagnostics", "-q", "check_running", "--quiet"] }
             initialDelaySeconds: 20
             periodSeconds: 10
-            timeoutSeconds: 10
+            timeoutSeconds: 20
           livenessProbe:
             exec: { command: ["rabbitmq-diagnostics", "-q", "check_running", "--quiet"] }
             initialDelaySeconds: 30
-            periodSeconds: 15
-            timeoutSeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 30
+            failureThreshold: 6
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: rabbitmq-data }

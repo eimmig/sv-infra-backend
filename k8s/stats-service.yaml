@@ -19,6 +19,7 @@ spec:
           ports: [{ containerPort: 8083 }]
           env:
             - { name: SPRING_PROFILES_ACTIVE, value: dev }
+            - { name: SPRING_RABBITMQ_LISTENER_SIMPLE_MISSING_QUEUES_FATAL, value: "false" }
             - { name: DB_HOST, value: postgres-stats }
             - { name: DB_PORT, value: "5432" }
             - { name: DB_NAME, value: stats }

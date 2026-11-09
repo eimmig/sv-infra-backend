@@ -862,6 +862,64 @@
           }
         ]
       }
+    },
+    {
+      "id": "feat-013",
+      "name": "RabbitMQ com nome de no estavel, Recreate, recursos e sondas; consumidor do stats-service que nao desiste da fila",
+      "goal": "Recriar o pod do RabbitMQ nao pode apagar topologia nem mensagens, e o consumidor do stats-service deve voltar sozinho quando a fila reaparece (fecha epic-054 da raiz).",
+      "scope": "k8s/rabbitmq.yaml (Deployment: strategy Recreate, hostname rabbitmq, resources, liveness/readiness), k8s/stats-service.yaml (env SPRING_RABBITMQ_LISTENER_SIMPLE_MISSING_QUEUES_FATAL=false), docker-compose.yml (hostname rabbitmq), docs do vault (services/infra.md, DECISIONS-LOG). Fora de escopo: StatefulSet ou cluster de 3 nos, replicas da fila quorum, codigo dos servicos, declaracao da topologia pelas aplicacoes.",
+      "description": "Ver epic-054 da raiz. Evidencias: D:/UTFPR/TCC/evidencias/falhas-porta/20261108-falhas-rollout-300s e evidencias/20261108-falhas/carga (reconciliacao com outbox=191115, processados=2622). Diretorios rabbit@rabbitmq-7677998b44-x2js2, -mx88m e -6fb96f679d-p59nq no PVC confirmam um no novo por pod. Picos medidos do broker nas rodadas de 2026-11-08: 1.005 mCPU e 488 MiB.",
+      "dependencies": [
+        "feat-012"
+      ],
+      "status": "done",
+      "jira": "SV-817",
+      "plan_review": "2026-11-08, Plan Reviewer (review-suite:ln-11-plan-reviewer), auto-revisao sem subagente (independencia reduzida, declarada). Veredito: READY WITH CONCERNS. Conferido: spring.rabbitmq.listener.simple.missing-queues-fatal existe no metadata do spring-boot-amqp 4.1.1 (versao do stats-service) e nao esta no application.yml; nenhum servico declara topologia (sem Declarable/QueueBuilder), entao ela e contrato do infra. Ajustes absorvidos: (MINOR) docker-compose.yml sem hostname tem o mesmo defeito ao recriar o container - hostname: rabbitmq; (MINOR) kubectl diff antes de cada apply, guardando a saida, por causa da deriva entre manifesto e cluster; (MINOR) ordem da migracao: fila e outbox zerados, apply do Deployment, rollout status, delete+apply do Job rabbitmq-init, list_queues, apply do stats-service. Risco aceito: trocar o nome do no descarta o conteudo do no atual (por isso fila vazia antes).",
+      "subtasks": [
+        {
+          "id": "feat-013.1",
+          "name": "RabbitMQ com hostname fixo, Recreate, recursos e sondas",
+          "status": "done",
+          "jira": "SV-818",
+          "detail": "Nome do no estavel entre pods e broker que nao e reiniciado so por estar lento.",
+          "checklist": [
+            "k8s/rabbitmq.yaml: strategy Recreate; template.spec.hostname: rabbitmq.",
+            "resources: requests cpu 500m memory 512Mi; limits cpu 2000m memory 1Gi (picos medidos 1.005 mCPU e 488 MiB).",
+            "liveness: timeoutSeconds 30, periodSeconds 20, failureThreshold 6; readiness: timeoutSeconds 20.",
+            "docker-compose.yml: hostname: rabbitmq."
+          ],
+          "validation": "YAML parseado; ./init.sh; kubectl diff/apply --dry-run=server no k3s.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-013.2",
+          "name": "stats-service sem missing-queues-fatal",
+          "status": "done",
+          "jira": "SV-819",
+          "detail": "O SimpleMessageListenerContainer passa a tentar de novo a cada recovery-interval quando a fila some.",
+          "checklist": [
+            "k8s/stats-service.yaml: env SPRING_RABBITMQ_LISTENER_SIMPLE_MISSING_QUEUES_FATAL=false."
+          ],
+          "validation": "kubectl diff; depois da implantacao, consumidores voltam sem rollout restart no 06-falhas.sh. Entregue na mesma branch da feat-013.1 (subtask/SV-818), por ser uma linha no mesmo conjunto de manifests.",
+          "owner": "agente"
+        },
+        {
+          "id": "feat-013.3",
+          "name": "Implantacao, repeticao da injecao de falhas, docs e CHANGELOG",
+          "status": "done",
+          "jira": "SV-820",
+          "detail": "Migracao em producao com fila vazia e prova pelo 06-falhas.sh.",
+          "checklist": [
+            "Fila e outbox zerados; kubectl diff guardado; apply do Deployment; rollout status; delete+apply do Job rabbitmq-init; list_queues; apply do stats-service.",
+            "06-falhas.sh: F1 a F5 com contagens e estado por aposta coincidindo.",
+            "docs/services/infra.md e DECISIONS-LOG.",
+            "CHANGELOG.md [Unreleased]."
+          ],
+          "validation": "06-resultado.txt e 06-estado.txt sem divergencia; DLQ vazia.",
+          "owner": "agente"
+        }
+      ],
+      "evidence": "Entregue em 2026-11-08 (feature/SV-817, PR #35 da subtask/SV-818 com feat-013.1 e feat-013.2). Implantado no k3s a partir da branch: no rabbit@rabbitmq, Job rabbitmq-init reaplicado, stats-service com missing-queues-fatal=false (evidencias/20261108-feat013: kubectl diff, implantacao.txt, teste-delete-pod.txt com consumidores de volta em 33 s sem restart). 06-falhas.sh repetido (evidencias/20261108-falhas-pos-correcao): F1 a F5, 193.846 eventos esperados = processados, outbox 0, DLQ 0, 0 apostas com situacao diferente, F4 1 linha, F5 won lucro=100. Antes da correcao: 191.115 retidos no outbox e 11 eventos perdidos (evidencias/20261108-falhas/06-antes-da-correcao.txt). ./init.sh verde."
     }
   ]
 }
