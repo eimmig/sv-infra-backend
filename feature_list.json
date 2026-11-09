@@ -930,7 +930,7 @@
       "dependencies": [
         "feat-013"
       ],
-      "status": "in-progress",
+      "status": "done",
       "jira": "SV-827",
       "plan_review": "2026-11-09, Plan Reviewer em auto-revisao curta (independencia reduzida, declarada). Veredito: READY. postgres-stats ja usa strategy Recreate (feat-012), entao a troca de recursos nao sobe dois PostgreSQL no mesmo PVC. Memoria do no: 16 GB, uso medido ~7 GB; +1,5 GiB de limite cabe. O valor ja esta aplicado ao vivo pelo experimento; o manifesto passa a declara-lo (kubectl diff deve sair vazio para esses campos).",
       "subtasks": [
@@ -948,7 +948,7 @@
           "owner": "agente"
         }
       ],
-      "evidence": ""
+      "evidence": "Entregue em 2026-11-09 (feature/SV-827, PR #38). postgres-stats requests 500m/1Gi, limits 2000m/2Gi; aplicado ao vivo (kubectl diff vazio). ./init.sh verde."
     }
   ]
 }
