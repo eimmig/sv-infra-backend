@@ -141,8 +141,8 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom: { secretKeyRef: { name: stakevault-secrets, key: POSTGRES_STATS_PASSWORD } }
           resources:
-            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
-            limits: { cpu: 500m, memory: 512Mi, ephemeral-storage: 512Mi }
+            requests: { cpu: 500m, memory: 1Gi, ephemeral-storage: 128Mi }
+            limits: { cpu: 2000m, memory: 2Gi, ephemeral-storage: 512Mi }
           volumeMounts:
             - { name: data, mountPath: /var/lib/postgresql }
           readinessProbe:

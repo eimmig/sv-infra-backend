@@ -920,6 +920,35 @@
         }
       ],
       "evidence": "Entregue em 2026-11-08 (feature/SV-817, PR #35 da subtask/SV-818 com feat-013.1 e feat-013.2). Implantado no k3s a partir da branch: no rabbit@rabbitmq, Job rabbitmq-init reaplicado, stats-service com missing-queues-fatal=false (evidencias/20261108-feat013: kubectl diff, implantacao.txt, teste-delete-pod.txt com consumidores de volta em 33 s sem restart). 06-falhas.sh repetido (evidencias/20261108-falhas-pos-correcao): F1 a F5, 193.846 eventos esperados = processados, outbox 0, DLQ 0, 0 apostas com situacao diferente, F4 1 linha, F5 won lucro=100. Antes da correcao: 191.115 retidos no outbox e 11 eventos perdidos (evidencias/20261108-falhas/06-antes-da-correcao.txt). ./init.sh verde."
+    },
+    {
+      "id": "feat-014",
+      "name": "postgres-stats com 2000m de CPU e 2Gi",
+      "goal": "Tirar o estrangulamento de CPU do banco analitico (parte do infra do epic-056).",
+      "scope": "k8s/postgres.yaml (postgres-stats: requests 500m/1Gi, limits 2000m/2Gi, igual ao postgres-bets); docs/services/infra.md. Fora de escopo: parametros do PostgreSQL (shared_buffers) e os outros bancos.",
+      "description": "Ver epic-056. cpu.stat do postgres-stats: 29.996 de 74.108 periodos estrangulados com limite de 500m. Na C3 da bateria de 2026-11-08 ele usou ate 1,5 CPU. Experimento em producao (kubectl set resources, 2026-11-09): dashboard filtrado de 2 meses de 685 para 319 ms de mediana.",
+      "dependencies": [
+        "feat-013"
+      ],
+      "status": "in-progress",
+      "jira": "SV-827",
+      "plan_review": "2026-11-09, Plan Reviewer em auto-revisao curta (independencia reduzida, declarada). Veredito: READY. postgres-stats ja usa strategy Recreate (feat-012), entao a troca de recursos nao sobe dois PostgreSQL no mesmo PVC. Memoria do no: 16 GB, uso medido ~7 GB; +1,5 GiB de limite cabe. O valor ja esta aplicado ao vivo pelo experimento; o manifesto passa a declara-lo (kubectl diff deve sair vazio para esses campos).",
+      "subtasks": [
+        {
+          "id": "feat-014.1",
+          "name": "Recursos do postgres-stats e docs",
+          "status": "done",
+          "jira": "SV-828",
+          "detail": "Manifesto e vault.",
+          "checklist": [
+            "k8s/postgres.yaml: postgres-stats requests 500m/1Gi, limits 2000m/2Gi.",
+            "docs/services/infra.md."
+          ],
+          "validation": "YAML parseado, ./init.sh, kubectl diff sem diferenca de resources.",
+          "owner": "agente"
+        }
+      ],
+      "evidence": ""
     }
   ]
 }
