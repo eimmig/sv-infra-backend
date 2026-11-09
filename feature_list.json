@@ -872,7 +872,7 @@
       "dependencies": [
         "feat-012"
       ],
-      "status": "in-progress",
+      "status": "done",
       "jira": "SV-817",
       "plan_review": "2026-11-08, Plan Reviewer (review-suite:ln-11-plan-reviewer), auto-revisao sem subagente (independencia reduzida, declarada). Veredito: READY WITH CONCERNS. Conferido: spring.rabbitmq.listener.simple.missing-queues-fatal existe no metadata do spring-boot-amqp 4.1.1 (versao do stats-service) e nao esta no application.yml; nenhum servico declara topologia (sem Declarable/QueueBuilder), entao ela e contrato do infra. Ajustes absorvidos: (MINOR) docker-compose.yml sem hostname tem o mesmo defeito ao recriar o container - hostname: rabbitmq; (MINOR) kubectl diff antes de cada apply, guardando a saida, por causa da deriva entre manifesto e cluster; (MINOR) ordem da migracao: fila e outbox zerados, apply do Deployment, rollout status, delete+apply do Job rabbitmq-init, list_queues, apply do stats-service. Risco aceito: trocar o nome do no descarta o conteudo do no atual (por isso fila vazia antes).",
       "subtasks": [
@@ -906,7 +906,7 @@
         {
           "id": "feat-013.3",
           "name": "Implantacao, repeticao da injecao de falhas, docs e CHANGELOG",
-          "status": "in-progress",
+          "status": "done",
           "jira": "SV-820",
           "detail": "Migracao em producao com fila vazia e prova pelo 06-falhas.sh.",
           "checklist": [
@@ -919,7 +919,7 @@
           "owner": "agente"
         }
       ],
-      "evidence": ""
+      "evidence": "Entregue em 2026-11-08 (feature/SV-817, PR #35 da subtask/SV-818 com feat-013.1 e feat-013.2). Implantado no k3s a partir da branch: no rabbit@rabbitmq, Job rabbitmq-init reaplicado, stats-service com missing-queues-fatal=false (evidencias/20261108-feat013: kubectl diff, implantacao.txt, teste-delete-pod.txt com consumidores de volta em 33 s sem restart). 06-falhas.sh repetido (evidencias/20261108-falhas-pos-correcao): F1 a F5, 193.846 eventos esperados = processados, outbox 0, DLQ 0, 0 apostas com situacao diferente, F4 1 linha, F5 won lucro=100. Antes da correcao: 191.115 retidos no outbox e 11 eventos perdidos (evidencias/20261108-falhas/06-antes-da-correcao.txt). ./init.sh verde."
     }
   ]
 }
