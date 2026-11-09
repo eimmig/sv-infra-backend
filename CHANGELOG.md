@@ -10,6 +10,8 @@ CI (ver `docs/CI-CD.md`).
 - [SV-818](https://stakevault.atlassian.net/browse/SV-818) - RabbitMQ com hostname fixo, Recreate, recursos e sondas
 - [SV-819](https://stakevault.atlassian.net/browse/SV-819) - stats-service sem missing-queues-fatal
 - [SV-820](https://stakevault.atlassian.net/browse/SV-820) - Implantacao, repeticao da injecao de falhas, docs e CHANGELOG
+- [SV-827](https://stakevault.atlassian.net/browse/SV-827) - postgres-stats com 2000m de CPU e 2Gi
+- [SV-828](https://stakevault.atlassian.net/browse/SV-828) - Recursos do postgres-stats e docs
 
 ## [0.3.0] - 2026-10-04
 
