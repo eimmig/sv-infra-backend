@@ -6,6 +6,10 @@ repositório adiciona uma entrada em `[Unreleased]` — verificado automaticamen
 CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
+- [SV-817](https://stakevault.atlassian.net/browse/SV-817) - RabbitMQ com nome de no estavel, Recreate, recursos e sondas; consumidor do stats-service que nao desiste da fila
+- [SV-818](https://stakevault.atlassian.net/browse/SV-818) - RabbitMQ com hostname fixo, Recreate, recursos e sondas
+- [SV-819](https://stakevault.atlassian.net/browse/SV-819) - stats-service sem missing-queues-fatal
+- [SV-820](https://stakevault.atlassian.net/browse/SV-820) - Implantacao, repeticao da injecao de falhas, docs e CHANGELOG
 
 ## [0.3.0] - 2026-10-04
 
