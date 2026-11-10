@@ -134,6 +134,9 @@ spec:
       containers:
         - name: postgres
           image: postgres:18-alpine
+          # Disco SSD: o padrao 4 supoe disco giratorio e faz o planejador trocar o indice por
+          # leitura sequencial em periodos curtos (feat-015).
+          args: ["postgres", "-c", "random_page_cost=1.1"]
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: stats }
