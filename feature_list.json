@@ -949,6 +949,35 @@
         }
       ],
       "evidence": "Entregue em 2026-11-09 (feature/SV-827, PR #38). postgres-stats requests 500m/1Gi, limits 2000m/2Gi; aplicado ao vivo (kubectl diff vazio). ./init.sh verde."
+    },
+    {
+      "id": "feat-015",
+      "name": "random_page_cost=1.1 no postgres-stats",
+      "goal": "Ajustar o custo de leitura aleatoria ao disco SSD do servidor (padrao 4 supoe disco giratorio). Par com stats-service feat-039.",
+      "scope": "k8s/postgres.yaml (postgres-stats: args postgres -c random_page_cost=1.1) e docker-compose.yml (mesmo parametro); docs/services/infra.md. Fora de escopo: os outros bancos.",
+      "description": "Teste em BEGIN/ROLLBACK de 2026-11-09 (SET LOCAL): com a estatistica da feat-039 e random_page_cost=1.1, periodo de 30 dias 15,5 -> 5,5 ms, ano inteiro 23,6 ms mantido.",
+      "dependencies": [
+        "feat-014"
+      ],
+      "plan_review": "2026-11-09, Plan Reviewer em auto-revisao curta (independencia reduzida, declarada). Veredito: READY. postgres-stats usa strategy Recreate, entao a troca de args reinicia o banco sem dois PostgreSQL no mesmo PVC; o stats-service reconecta pelo Hikari e os eventos esperam na fila. Disco SSD confirmado pelo usuario.",
+      "status": "done",
+      "subtasks": [
+        {
+          "id": "feat-015.1",
+          "name": "Parametro no manifesto e no compose",
+          "status": "done",
+          "detail": "args do container.",
+          "checklist": [
+            "postgres.yaml e docker-compose.yml.",
+            "kubectl apply e SHOW random_page_cost = 1.1."
+          ],
+          "validation": "./init.sh verde; SHOW random_page_cost em producao.",
+          "owner": "agente",
+          "jira": "SV-851"
+        }
+      ],
+      "jira": "SV-850",
+      "evidence": "Entregue em 2026-11-09 (feature/SV-850, PR #41). postgres-stats com random_page_cost=1.1 (k8s args e compose command). ./init.sh verde."
     }
   ]
 }

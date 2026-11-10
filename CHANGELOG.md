@@ -14,6 +14,8 @@ CI (ver `docs/CI-CD.md`).
 - [SV-820](https://stakevault.atlassian.net/browse/SV-820) - Implantacao, repeticao da injecao de falhas, docs e CHANGELOG
 - [SV-827](https://stakevault.atlassian.net/browse/SV-827) - postgres-stats com 2000m de CPU e 2Gi
 - [SV-828](https://stakevault.atlassian.net/browse/SV-828) - Recursos do postgres-stats e docs
+- [SV-850](https://stakevault.atlassian.net/browse/SV-850) - random_page_cost=1.1 no postgres-stats
+- [SV-851](https://stakevault.atlassian.net/browse/SV-851) - Parametro no manifesto e no compose
 
 ## [0.3.0] - 2026-10-04
 
