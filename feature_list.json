@@ -978,6 +978,35 @@
       ],
       "jira": "SV-850",
       "evidence": "Entregue em 2026-11-09 (feature/SV-850, PR #41). postgres-stats com random_page_cost=1.1 (k8s args e compose command). ./init.sh verde."
+    },
+    {
+      "id": "feat-016",
+      "name": "plan_cache_mode=force_custom_plan no postgres-stats",
+      "goal": "Evitar o plano generico das consultas do dashboard com filtro de dimensao. Depois de 5 execucoes, o PostgreSQL troca o plano por um generico que nao conhece o periodo nem os filtros opcionais ($n IS NULL OR ...) e volta a buscar o idx_fact_bet_date_id dia a dia: 59 ms contra 14 ms por consulta, e 9 consultas em paralelo levavam o dashboard de 1 ano com esporte a ~800 ms.",
+      "scope": "k8s/postgres.yaml (args do postgres-stats) e docker-compose.yml; docs/services/infra.md.",
+      "description": "Teste ao vivo em 2026-11-09 (ALTER SYSTEM e pg_reload_conf, desfeito em seguida): GET /api/v1/statistics de 1 ano com esporte, sem cache, 798 -> 207 ms de mediana (n=10). Log de consultas acima de 50 ms mostrou as 9 agregacoes em paralelo com 600-850 ms cada.",
+      "dependencies": [
+        "feat-015"
+      ],
+      "plan_review": "2026-11-09, Plan Reviewer em auto-revisao curta (independencia reduzida, declarada). Veredito: READY WITH CONCERNS. Custo aceito: toda instrucao preparada passa a ser planejada a cada execucao, inclusive as escritas do consumo de eventos; para INSERT e UPDATE por chave o planejamento e de decimos de milissegundo. A bateria de carga final nao e repetida; o efeito nas escritas fica como risco declarado. Alternativa rejeitada: prepareThreshold=0 no JDBC do stats-service, que exige release de codigo e muda todas as consultas do mesmo jeito.",
+      "status": "done",
+      "subtasks": [
+        {
+          "id": "feat-016.1",
+          "name": "Parametro no manifesto e no compose",
+          "status": "done",
+          "detail": "args do container.",
+          "checklist": [
+            "postgres.yaml e docker-compose.yml.",
+            "kubectl apply e SHOW plan_cache_mode."
+          ],
+          "validation": "./init.sh verde; dashboard de 1 ano com esporte medido.",
+          "owner": "agente",
+          "jira": "SV-853"
+        }
+      ],
+      "jira": "SV-852",
+      "evidence": "Entregue em 2026-11-09 (feature/SV-852, PR #44). postgres-stats com plan_cache_mode=force_custom_plan (k8s args e compose command). ./init.sh verde; dashboard de 1 ano com esporte 798 -> 207 ms no teste ao vivo."
     }
   ]
 }
