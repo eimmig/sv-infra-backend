@@ -960,12 +960,12 @@
         "feat-014"
       ],
       "plan_review": "2026-11-09, Plan Reviewer em auto-revisao curta (independencia reduzida, declarada). Veredito: READY. postgres-stats usa strategy Recreate, entao a troca de args reinicia o banco sem dois PostgreSQL no mesmo PVC; o stats-service reconecta pelo Hikari e os eventos esperam na fila. Disco SSD confirmado pelo usuario.",
-      "status": "in-progress",
+      "status": "done",
       "subtasks": [
         {
           "id": "feat-015.1",
           "name": "Parametro no manifesto e no compose",
-          "status": "in-progress",
+          "status": "done",
           "detail": "args do container.",
           "checklist": [
             "postgres.yaml e docker-compose.yml.",
@@ -976,7 +976,8 @@
           "jira": "SV-851"
         }
       ],
-      "jira": "SV-850"
+      "jira": "SV-850",
+      "evidence": "Entregue em 2026-11-09 (feature/SV-850, PR #41). postgres-stats com random_page_cost=1.1 (k8s args e compose command). ./init.sh verde."
     }
   ]
 }
