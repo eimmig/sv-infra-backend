@@ -135,8 +135,9 @@ spec:
         - name: postgres
           image: postgres:18-alpine
           # Disco SSD: o padrao 4 supoe disco giratorio e faz o planejador trocar o indice por
-          # leitura sequencial em periodos curtos (feat-015).
-          args: ["postgres", "-c", "random_page_cost=1.1"]
+          # leitura sequencial em periodos curtos (feat-015). Plano sempre com os valores reais: o
+          # plano generico ignora o periodo e os filtros opcionais do dashboard (feat-016).
+          args: ["postgres", "-c", "random_page_cost=1.1", "-c", "plan_cache_mode=force_custom_plan"]
           ports: [{ containerPort: 5432 }]
           env:
             - { name: POSTGRES_DB, value: stats }

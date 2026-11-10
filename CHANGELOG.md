@@ -6,6 +6,8 @@ repositório adiciona uma entrada em `[Unreleased]` — verificado automaticamen
 CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
+- [SV-852](https://stakevault.atlassian.net/browse/SV-852) - plan_cache_mode=force_custom_plan no postgres-stats
+- [SV-853](https://stakevault.atlassian.net/browse/SV-853) - Parametro no manifesto e no compose
 
 ## [0.4.0] - 2026-11-10
 
