@@ -6,6 +6,8 @@ repositório adiciona uma entrada em `[Unreleased]` — verificado automaticamen
 CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-11-24
 - `scripts/checkup.sh`: checkup somente leitura do servidor k3s (rede, nó e IP, pods, web e API,
   bancos, Redis, fila do RabbitMQ e DLQ, túnel do n8n e webhook do Telegram)
 - `scripts/subir-tunel.sh`: sobe o port-forward do n8n e o ngrok no domínio fixo do webhook; o
