@@ -6,6 +6,8 @@ repositório adiciona uma entrada em `[Unreleased]` — verificado automaticamen
 CI (ver `docs/CI-CD.md`).
 
 ## [Unreleased]
+- `scripts/checkup.sh` e `scripts/subir-tunel.sh`: o port-forward do n8n passa a ser achado pela porta
+  5678, porque o `kubectl` do k3s reescreve a linha de comando e o `pgrep`/`pkill` por nome falhava
 
 ## [0.6.0] - 2026-11-24
 - `scripts/checkup.sh`: checkup somente leitura do servidor k3s (rede, nó e IP, pods, web e API,

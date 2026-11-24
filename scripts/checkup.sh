@@ -69,7 +69,9 @@ else
 fi
 
 titulo "6. Telegram (tunel do n8n)"
-pgrep -f "port-forward svc/n8n" >/dev/null && ok "port-forward do n8n rodando" || falha "port-forward do n8n parado: ./subir-tunel.sh"
+# O kubectl do k3s reescreve a linha de comando (aparece so "kubectl"); confere quem escuta a porta 5678.
+ss -ltnpH "sport = :5678" 2>/dev/null | grep -q '"kubectl"' && ok "port-forward do n8n rodando (porta 5678)" \
+  || falha "port-forward do n8n parado: ./subir-tunel.sh"
 pgrep -f "ngrok http" >/dev/null && ok "ngrok rodando" || falha "ngrok parado: ./subir-tunel.sh"
 if [ -z "$DOMINIO" ]; then
   aviso "NGROK_DOMAIN nao definido (ambiente ou $ENV_FILE): tunel e webhook nao conferidos"
