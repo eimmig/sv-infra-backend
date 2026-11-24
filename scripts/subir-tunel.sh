@@ -16,7 +16,10 @@ if [ -z "${NGROK_DOMAIN:-}" ]; then
 fi
 
 echo "Encerrando tunel antigo, se houver..."
-pkill -f "port-forward svc/n8n" 2>/dev/null
+# O kubectl do k3s reescreve a linha de comando (aparece so "kubectl"), entao o port-forward
+# antigo e achado pelo processo que escuta a porta 5678, nao pelo nome.
+pid_antigo=$(ss -ltnpH "sport = :5678" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)
+[ -n "$pid_antigo" ] && kill "$pid_antigo" 2>/dev/null
 pkill -f "ngrok http" 2>/dev/null
 sleep 1
 
