@@ -10,6 +10,8 @@ CI (ver `docs/CI-CD.md`).
   bancos, Redis, fila do RabbitMQ e DLQ, túnel do n8n e webhook do Telegram)
 - `scripts/subir-tunel.sh`: sobe o port-forward do n8n e o ngrok no domínio fixo do webhook; o
   domínio vem de `NGROK_DOMAIN` (ambiente ou `~/.sv-tunel.env`, fora do Git)
+
+## [0.5.0] - 2026-11-10
 - [SV-852](https://stakevault.atlassian.net/browse/SV-852) - plan_cache_mode=force_custom_plan no postgres-stats
 - [SV-853](https://stakevault.atlassian.net/browse/SV-853) - Parametro no manifesto e no compose
 
